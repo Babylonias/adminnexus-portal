@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreVertical, MapPin, Users } from "lucide-react";
+import { Plus, Search, Filter, MoreVertical, MapPin, Users, Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -18,9 +19,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { UniversityModal } from "@/components/universities/UniversityModal";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+
+interface University {
+  id: number;
+  name: string;
+  slug: string;
+  location: string;
+  description: string;
+  amphitheaterCount: number;
+  totalCapacity: number;
+  status: "active" | "draft";
+  createdAt: string;
+  photos: string[];
+}
 
 // Mock data
-const universities = [
+const initialUniversities: University[] = [
   {
     id: 1,
     name: "Université Paris Tech",
@@ -29,7 +45,7 @@ const universities = [
     description: "Institution de référence en sciences et technologies",
     amphitheaterCount: 12,
     totalCapacity: 2500,
-    status: "active" as const,
+    status: "active",
     createdAt: "2024-01-15",
     photos: ["https://images.unsplash.com/photo-1562774053-701939374585?w=400"]
   },
@@ -41,7 +57,7 @@ const universities = [
     description: "Université pluridisciplinaire de recherche intensive",
     amphitheaterCount: 18,
     totalCapacity: 3200,
-    status: "active" as const,
+    status: "active",
     createdAt: "2024-01-10",
     photos: ["https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=400"]
   },
@@ -53,15 +69,25 @@ const universities = [
     description: "Sciences, technologies, santé",
     amphitheaterCount: 8,
     totalCapacity: 1800,
-    status: "draft" as const,
+    status: "draft",
     createdAt: "2024-02-01",
     photos: ["https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400"]
   }
 ];
 
 export const Universities = () => {
+  const [universities, setUniversities] = useState<University[]>(initialUniversities);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  
+  // Modal states
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [selectedUniversity, setSelectedUniversity] = useState<University | undefined>();
+  
+  // Confirmation dialog states
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [universityToDelete, setUniversityToDelete] = useState<University | null>(null);
 
   const filteredUniversities = universities.filter(uni => {
     const matchesSearch = uni.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,15 +97,64 @@ export const Universities = () => {
   });
 
   const handleCreateNew = () => {
-    toast.success("Fonction de création en cours de développement");
+    setSelectedUniversity(undefined);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
-  const handleEdit = (name: string) => {
-    toast.info(`Édition de ${name} en cours de développement`);
+  const handleView = (university: University) => {
+    setSelectedUniversity(university);
+    setModalMode('view');
+    setModalOpen(true);
   };
 
-  const handleDelete = (name: string) => {
-    toast.error(`Suppression de ${name} - Fonction en cours de développement`);
+  const handleEdit = (university: University) => {
+    setSelectedUniversity(university);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleDeleteClick = (university: University) => {
+    setUniversityToDelete(university);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (universityToDelete) {
+      setUniversities(prev => prev.filter(u => u.id !== universityToDelete.id));
+      toast.success(`${universityToDelete.name} supprimée avec succès`);
+      setUniversityToDelete(null);
+    }
+  };
+
+  const handleSave = (universityData: Omit<University, 'amphitheaterCount' | 'totalCapacity' | 'createdAt' | 'photos'> & { id?: number }) => {
+    if (universityData.id) {
+      // Edit existing
+      setUniversities(prev => prev.map(u => 
+        u.id === universityData.id 
+          ? { 
+              ...u, 
+              ...universityData,
+              // Keep existing calculated fields
+              amphitheaterCount: u.amphitheaterCount,
+              totalCapacity: u.totalCapacity,
+              createdAt: u.createdAt,
+              photos: u.photos
+            }
+          : u
+      ));
+    } else {
+      // Create new
+      const newUniversity: University = {
+        ...universityData,
+        id: Math.max(...universities.map(u => u.id)) + 1,
+        amphitheaterCount: 0,
+        totalCapacity: 0,
+        createdAt: new Date().toISOString().split('T')[0],
+        photos: ["https://images.unsplash.com/photo-1562774053-701939374585?w=400"]
+      };
+      setUniversities(prev => [newUniversity, ...prev]);
+    }
   };
 
   return (
@@ -159,10 +234,20 @@ export const Universities = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(university.name)}>
+                      <DropdownMenuItem onClick={() => handleView(university)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Voir les détails
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(university)}>
+                        <Edit className="h-4 w-4 mr-2" />
                         Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(university.name)}>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteClick(university)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
                         Supprimer
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -198,6 +283,26 @@ export const Universities = () => {
           </p>
         </div>
       )}
+
+      {/* Modals */}
+      <UniversityModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        university={selectedUniversity}
+        mode={modalMode}
+        onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={handleConfirmDelete}
+        title="Supprimer l'université"
+        description={`Êtes-vous sûr de vouloir supprimer "${universityToDelete?.name}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="destructive"
+      />
     </div>
   );
 };

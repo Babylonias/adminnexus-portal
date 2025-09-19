@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Filter, MoreVertical, Building2, Users, MapPin } from "lucide-react";
+import { Plus, Search, Filter, MoreVertical, Building2, Users, MapPin, Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -18,9 +19,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { AmphitheaterModal } from "@/components/amphitheaters/AmphitheaterModal";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+
+interface Amphitheater {
+  id: number;
+  name: string;
+  slug: string;
+  university: string;
+  universityId: number;
+  location: string;
+  capacity: number;
+  equipment: string[];
+  status: "active" | "maintenance" | "draft";
+  description: string;
+  createdAt: string;
+}
 
 // Mock data
-const amphitheaters = [
+const initialAmphitheaters: Amphitheater[] = [
   {
     id: 1,
     name: "Amphi Sciences 200",
@@ -76,9 +93,19 @@ const amphitheaters = [
 ];
 
 export const Amphitheaters = () => {
+  const [amphitheaters, setAmphitheaters] = useState<Amphitheater[]>(initialAmphitheaters);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [universityFilter, setUniversityFilter] = useState("all");
+  
+  // Modal states
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [selectedAmphitheater, setSelectedAmphitheater] = useState<Amphitheater | undefined>();
+  
+  // Confirmation dialog states
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [amphitheaterToDelete, setAmphitheaterToDelete] = useState<Amphitheater | null>(null);
 
   const filteredAmphitheaters = amphitheaters.filter(amphi => {
     const matchesSearch = amphi.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,15 +117,56 @@ export const Amphitheaters = () => {
   });
 
   const handleCreateNew = () => {
-    toast.success("Fonction de création en cours de développement");
+    setSelectedAmphitheater(undefined);
+    setModalMode('create');
+    setModalOpen(true);
   };
 
-  const handleEdit = (name: string) => {
-    toast.info(`Édition de ${name} en cours de développement`);
+  const handleView = (amphitheater: Amphitheater) => {
+    setSelectedAmphitheater(amphitheater);
+    setModalMode('view');
+    setModalOpen(true);
   };
 
-  const handleDelete = (name: string) => {
-    toast.error(`Suppression de ${name} - Fonction en cours de développement`);
+  const handleEdit = (amphitheater: Amphitheater) => {
+    setSelectedAmphitheater(amphitheater);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleDeleteClick = (amphitheater: Amphitheater) => {
+    setAmphitheaterToDelete(amphitheater);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (amphitheaterToDelete) {
+      setAmphitheaters(prev => prev.filter(a => a.id !== amphitheaterToDelete.id));
+      toast.success(`${amphitheaterToDelete.name} supprimé avec succès`);
+      setAmphitheaterToDelete(null);
+    }
+  };
+
+  const handleSave = (amphitheaterData: Omit<Amphitheater, 'createdAt'> & { id?: number }) => {
+    if (amphitheaterData.id) {
+      // Edit existing
+      setAmphitheaters(prev => prev.map(a => 
+        a.id === amphitheaterData.id 
+          ? { 
+              ...amphitheaterData,
+              createdAt: prev.find(p => p.id === amphitheaterData.id)?.createdAt || new Date().toISOString().split('T')[0]
+            } as Amphitheater
+          : a
+      ));
+    } else {
+      // Create new
+      const newAmphitheater: Amphitheater = {
+        ...amphitheaterData,
+        id: Math.max(...amphitheaters.map(a => a.id)) + 1,
+        createdAt: new Date().toISOString().split('T')[0]
+      } as Amphitheater;
+      setAmphitheaters(prev => [newAmphitheater, ...prev]);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -201,10 +269,20 @@ export const Amphitheaters = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(amphitheater.name)}>
+                      <DropdownMenuItem onClick={() => handleView(amphitheater)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Voir les détails
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(amphitheater)}>
+                        <Edit className="h-4 w-4 mr-2" />
                         Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(amphitheater.name)}>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteClick(amphitheater)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
                         Supprimer
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -257,6 +335,26 @@ export const Amphitheaters = () => {
           </p>
         </div>
       )}
+
+      {/* Modals */}
+      <AmphitheaterModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        amphitheater={selectedAmphitheater}
+        mode={modalMode}
+        onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={handleConfirmDelete}
+        title="Supprimer l'amphithéâtre"
+        description={`Êtes-vous sûr de vouloir supprimer "${amphitheaterToDelete?.name}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="destructive"
+      />
     </div>
   );
 };
