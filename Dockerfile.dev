@@ -1,19 +1,24 @@
+# Utiliser l'image de base Node.js
 FROM node:18-alpine
 
+# Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY bun.lockb ./
+# Installer pnpm globalement
+RUN npm install -g pnpm
 
-# Install dependencies
-RUN npm ci
+# Copier les fichiers de gestion des paquets essentiels (uniquement package.json)
+COPY package.json ./
 
-# Copy source code
+# Installer les dépendances en utilisant pnpm
+# Cette commande installe les dépendances en se basant sur le package.json
+RUN pnpm install
+
+# Copier le reste du code de l'application
 COPY . .
 
-# Expose port
-EXPOSE 8080
+# Exposer le port de l'application
+EXPOSE 55555
 
-# Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Lancer le serveur de développement avec pnpm
+CMD ["pnpm", "run", "dev", "--", "--host", "0.0.0.0"]

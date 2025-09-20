@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "8080:8080"
+      - "55555:55555"
     volumes:
       - .:/app
       - /app/node_modules
@@ -16,34 +16,6 @@ services:
     restart: unless-stopped
     networks:
       - campuswa-dev-network
-
-  postgres-dev:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: campuswa_dev
-      POSTGRES_USER: campuswa_dev
-      POSTGRES_PASSWORD: campuswa_dev_password
-    volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
-    restart: unless-stopped
-    networks:
-      - campuswa-dev-network
-
-  redis-dev:
-    image: redis:7-alpine
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis_dev_data:/data
-    restart: unless-stopped
-    networks:
-      - campuswa-dev-network
-
-volumes:
-  postgres_dev_data:
-  redis_dev_data:
 
 networks:
   campuswa-dev-network:

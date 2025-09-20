@@ -1,0 +1,2 @@
+Remove tout ce qui ets database derriere parce que le backend est ailleurs en laravel
+La liste des notifications doit etre deroulable parce qu'on veut envoyer une dizaine de notifs

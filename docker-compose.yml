@@ -1,49 +1,22 @@
 version: '3.8'
 
 services:
-  campuswa-admin:
+  campuswa-admin-dev:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
-      - "3000:80"
-    environment:
-      - NODE_ENV=production
-    restart: unless-stopped
-    networks:
-      - campuswa-network
-
-  # Base de données PostgreSQL (pour une future intégration)
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: campuswa
-      POSTGRES_USER: campuswa_user
-      POSTGRES_PASSWORD: campuswa_password
+      - "55555:55555"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3001
     restart: unless-stopped
     networks:
-      - campuswa-network
-
-  # Redis pour le cache et les sessions
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    networks:
-      - campuswa-network
-
-volumes:
-  postgres_data:
-  redis_data:
+      - campuswa-dev-network
 
 networks:
-  campuswa-network:
+  campuswa-dev-network:
     driver: bridge
