@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Dashboard } from "@/pages/Dashboard";
 import { Universities } from "@/pages/Universities";
 import { Amphitheaters } from "@/pages/Amphitheaters";
+import { Notifications } from "@/pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,11 @@ const App = () => (
           <Route path="/amphitheaters" element={
             <DashboardLayout>
               <Amphitheaters />
+            </DashboardLayout>
+          } />
+          <Route path="/notifications" element={
+            <DashboardLayout>
+              <Notifications />
             </DashboardLayout>
           } />
           <Route path="/settings" element={
