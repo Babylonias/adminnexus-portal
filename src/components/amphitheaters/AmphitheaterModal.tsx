@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { LocationSelector } from "@/components/shared/LocationSelector";
 import { toast } from "sonner";
 
 interface Amphitheater {
@@ -34,6 +35,10 @@ interface Amphitheater {
   equipment: string[];
   status: 'active' | 'maintenance' | 'draft';
   description: string;
+  // Coordonnées de localisation
+  latitude?: number;
+  longitude?: number;
+  address?: string;
 }
 
 interface AmphitheaterModalProps {
@@ -71,7 +76,10 @@ export const AmphitheaterModal = ({
       capacity: 0,
       equipment: [],
       status: 'draft',
-      description: ''
+      description: '',
+      latitude: undefined,
+      longitude: undefined,
+      address: ''
     }
   });
 
@@ -90,7 +98,10 @@ export const AmphitheaterModal = ({
         capacity: 0,
         equipment: [],
         status: 'draft',
-        description: ''
+        description: '',
+        latitude: undefined,
+        longitude: undefined,
+        address: ''
       });
     }
   }, [amphitheater, open, form]);
@@ -150,7 +161,7 @@ export const AmphitheaterModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[625px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
@@ -284,6 +295,24 @@ export const AmphitheaterModal = ({
                 ))}
               </div>
             </div>
+
+            <LocationSelector
+              value={{
+                address: form.watch('address'),
+                latitude: form.watch('latitude'),
+                longitude: form.watch('longitude'),
+              }}
+              onChange={(location) => {
+                form.setValue('address', location.address || '');
+                form.setValue('latitude', location.latitude);
+                form.setValue('longitude', location.longitude);
+                // Mettre à jour le champ location avec l'adresse si disponible
+                if (location.address) {
+                  form.setValue('location', location.address);
+                }
+              }}
+              disabled={isReadOnly}
+            />
           </div>
 
           <DialogFooter>

@@ -6,9 +6,11 @@ Hub d'administration pour la gestion des universités et amphithéâtres - Campu
 
 - **Gestion des Universités** : Créer, modifier et gérer les établissements d'enseignement supérieur
 - **Gestion des Amphithéâtres** : Administration complète des espaces d'enseignement
-- **Système de Notifications** : Notifications en temps réel avec gestion des états
+- **Localisation Avancée** : Sélection de localisation via Google Maps ou coordonnées GPS
+- **Système de Notifications** : Interface déroulante avec gestion étendue des notifications
 - **Interface Moderne** : Design responsive avec thème éducatif et gradients modernes
 - **Architecture Modulaire** : Code organisé et maintenable avec TypeScript
+- **Backend Laravel** : Intégration prête avec API Laravel existante
 
 ## 🛠️ Technologies Utilisées
 
@@ -16,10 +18,10 @@ Hub d'administration pour la gestion des universités et amphithéâtres - Campu
 - **UI/UX** : Tailwind CSS, shadcn/ui, Lucide React
 - **État** : React Query, React Hook Form
 - **Routing** : React Router DOM
+- **Cartes** : Google Maps API, géolocalisation
 - **Notifications** : Sonner
+- **Backend** : API Laravel (externe)
 - **Containerisation** : Docker, Docker Compose
-- **Base de données** : PostgreSQL (prêt pour l'intégration)
-- **Cache** : Redis (prêt pour l'intégration)
 
 ## 📦 Installation
 
@@ -57,27 +59,19 @@ npm run docker:dev
 docker-compose -f docker-compose.dev.yml up --build
 ```
 
-### Production avec Docker
-
-```bash
-# Construire et démarrer en production
-npm run docker:prod
-
-# Ou directement avec docker-compose
-docker-compose up --build -d
-```
+L'application sera accessible sur `http://localhost:55555`
 
 ### Commandes Docker utiles
 
 ```bash
 # Construire l'image
-npm run docker:build
+docker build -t campuswa-admin .
 
 # Arrêter les conteneurs
-npm run docker:stop
+docker-compose down
 
 # Voir les logs
-npm run docker:logs
+docker-compose logs -f
 
 # Nettoyer les conteneurs et volumes
 docker-compose down -v
@@ -122,20 +116,29 @@ Le projet utilise un système de design éducatif moderne avec :
 - CRUD complet des universités
 - Filtrage et recherche avancée
 - Gestion des statuts (actif/brouillon)
+- Localisation avec Google Maps ou coordonnées GPS
 - Upload d'images
 
 ### Gestion des Amphithéâtres
 - CRUD complet des amphithéâtres
 - Association avec les universités
 - Gestion des équipements
+- Localisation précise (Google Maps + GPS)
 - Statuts multiples (actif/maintenance/brouillon)
 
 ### Système de Notifications
-- Notifications en temps réel
+- Interface déroulante avec liste étendue
 - Types multiples (info, succès, avertissement, erreur)
 - Gestion des états (lu/non lu)
-- Interface dropdown intuitive
 - Compteur de notifications non lues
+- Suppression individuelle des notifications
+
+### Localisation Avancée
+- **Google Maps** : Sélection interactive sur carte
+- **Coordonnées GPS** : Saisie manuelle latitude/longitude
+- **Géolocalisation** : Utilisation de la position actuelle
+- **Géocodage inverse** : Conversion coordonnées ↔ adresse
+- Interface utilisateur avec onglets pour choisir le mode
 
 ## 🔧 Configuration
 
@@ -144,42 +147,43 @@ Le projet utilise un système de design éducatif moderne avec :
 Créez un fichier `.env` à la racine du projet :
 
 ```env
-# API Configuration
-VITE_API_URL=http://localhost:3001
+# API Configuration - Backend Laravel
+VITE_API_URL=http://localhost:8000/api
+VITE_LARAVEL_BACKEND_URL=http://localhost:8000
 
-# Database (pour Docker)
-POSTGRES_DB=campuswa
-POSTGRES_USER=campuswa_user
-POSTGRES_PASSWORD=campuswa_password
-
-# Redis (pour Docker)
-REDIS_URL=redis://localhost:6379
+# Google Maps API Key (optionnelle - peut être saisie dans l'interface)
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 ```
+
+### Configuration Google Maps
+
+L'application supporte Google Maps pour la sélection de localisation :
+
+1. **Avec clé API** : Configurez `VITE_GOOGLE_MAPS_API_KEY` dans `.env`
+2. **Sans clé API** : L'interface permet la saisie directe de la clé
+3. **Mode alternatif** : Utilisation des coordonnées GPS manuellement
+
+Pour obtenir une clé API Google Maps :
+1. Rendez-vous sur [Google Cloud Console](https://console.cloud.google.com/)
+2. Activez l'API Maps JavaScript
+3. Créez une clé API et configurez les restrictions appropriées
 
 ### Configuration Docker
 
-Le projet inclut plusieurs configurations Docker :
+Le projet inclut une configuration Docker optimisée :
 
-- `Dockerfile` : Image de production avec Nginx
-- `Dockerfile.dev` : Image de développement
-- `docker-compose.yml` : Stack complète de production
+- `Dockerfile.dev` : Image de développement avec pnpm
 - `docker-compose.dev.yml` : Stack de développement
-- `nginx.conf` : Configuration Nginx optimisée
+- Port par défaut : `55555` (Docker) / `8080` (local)
 
 ## 🚀 Déploiement
 
 ### Déploiement avec Docker
 
-1. **Production** :
-   ```bash
-   docker-compose up --build -d
-   ```
-
-2. **Avec base de données** :
-   ```bash
-   # La stack complète inclut PostgreSQL et Redis
-   docker-compose up -d
-   ```
+```bash
+# Environnement de développement
+docker-compose -f docker-compose.dev.yml up --build -d
+```
 
 ### Déploiement manuel
 
@@ -190,22 +194,28 @@ Le projet inclut plusieurs configurations Docker :
 
 2. **Servir les fichiers statiques** avec Nginx, Apache, ou un CDN
 
+### Intégration Backend Laravel
+
+L'application est conçue pour s'intégrer avec un backend Laravel :
+
+1. **API Endpoints** : Configurez `VITE_API_URL` vers votre API Laravel
+2. **Authentication** : Compatible avec Laravel Sanctum/Passport
+3. **CORS** : Assurez-vous que CORS est configuré sur Laravel
+4. **Routes API** : L'app attend les endpoints standards REST
+
 ## 📝 Scripts Disponibles
 
 ```bash
 # Développement
-npm run dev              # Serveur de développement
+npm run dev              # Serveur de développement (port 8080)
 npm run build            # Build de production
 npm run preview          # Prévisualisation du build
 npm run lint             # Linting du code
 
 # Docker
-npm run docker:build     # Construire l'image Docker
-npm run docker:run       # Lancer le conteneur
-npm run docker:dev       # Environnement de développement
-npm run docker:prod      # Environnement de production
-npm run docker:stop      # Arrêter les conteneurs
-npm run docker:logs      # Voir les logs
+docker-compose -f docker-compose.dev.yml up --build  # Développement (port 55555)
+docker-compose down      # Arrêter les conteneurs
+docker-compose logs -f   # Voir les logs en temps réel
 ```
 
 ## 🤝 Contribution
@@ -230,15 +240,21 @@ Pour toute question ou problème :
 
 ## 🔄 Roadmap
 
-- [ ] Intégration API backend
+- [x] Interface CRUD pour universités et amphithéâtres
+- [x] Système de notifications étendu et déroulable
+- [x] Localisation avec Google Maps et coordonnées GPS
+- [x] Design system moderne avec gradients
+- [ ] Intégration complète API Laravel
 - [ ] Authentification et autorisation
-- [ ] Gestion des utilisateurs
-- [ ] Système de réservation
-- [ ] Rapports et analytics
+- [ ] Gestion des utilisateurs et rôles
+- [ ] Système de réservation d'amphithéâtres
+- [ ] Rapports et analytics avancés
 - [ ] Mode sombre
 - [ ] Internationalisation (i18n)
 - [ ] Tests automatisés
 - [ ] CI/CD Pipeline
+- [ ] Upload et gestion d'images
+- [ ] Notifications push en temps réel
 
 ---
 

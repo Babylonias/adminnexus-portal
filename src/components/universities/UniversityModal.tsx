@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LocationSelector } from "@/components/shared/LocationSelector";
 import { toast } from "sonner";
 
 interface University {
@@ -29,6 +30,10 @@ interface University {
   description: string;
   status: 'active' | 'draft';
   photos?: string[];
+  // Coordonnées de localisation
+  latitude?: number;
+  longitude?: number;
+  address?: string;
 }
 
 interface UniversityModalProps {
@@ -56,7 +61,10 @@ export const UniversityModal = ({
       location: '',
       description: '',
       status: 'draft',
-      photos: []
+      photos: [],
+      latitude: undefined,
+      longitude: undefined,
+      address: ''
     }
   });
 
@@ -70,7 +78,10 @@ export const UniversityModal = ({
         location: '',
         description: '',
         status: 'draft',
-        photos: []
+        photos: [],
+        latitude: undefined,
+        longitude: undefined,
+        address: ''
       });
     }
   }, [university, open, form]);
@@ -109,7 +120,7 @@ export const UniversityModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
@@ -171,6 +182,24 @@ export const UniversityModal = ({
                 </SelectContent>
               </Select>
             </div>
+
+            <LocationSelector
+              value={{
+                address: form.watch('address'),
+                latitude: form.watch('latitude'),
+                longitude: form.watch('longitude'),
+              }}
+              onChange={(location) => {
+                form.setValue('address', location.address || '');
+                form.setValue('latitude', location.latitude);
+                form.setValue('longitude', location.longitude);
+                // Mettre à jour le champ location avec l'adresse si disponible
+                if (location.address) {
+                  form.setValue('location', location.address);
+                }
+              }}
+              disabled={isReadOnly}
+            />
           </div>
 
           <DialogFooter>
