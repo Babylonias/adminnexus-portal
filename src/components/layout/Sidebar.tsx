@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
   GraduationCap, 
@@ -34,9 +34,45 @@ const navigationItems = [
   },
 ];
 
+// Hook personnalisé pour gérer useLocation de manière sûre
+const useSafeLocation = () => {
+  const [pathname, setPathname] = useState(window.location.pathname);
+  
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setPathname(window.location.pathname);
+    };
+    
+    // Écouter les changements de location
+    window.addEventListener('popstate', handleLocationChange);
+    
+    // Utiliser une méthode plus directe pour les changements de route React Router
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    window.history.pushState = function(...args) {
+      originalPushState.apply(window.history, args);
+      handleLocationChange();
+    };
+    
+    window.history.replaceState = function(...args) {
+      originalReplaceState.apply(window.history, args);
+      handleLocationChange();
+    };
+    
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, []);
+  
+  return { pathname };
+};
+
 export const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const location = useLocation();
+  const location = useSafeLocation();
 
   return (
     <>
