@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Dashboard } from "@/pages/Dashboard";
 import { Universities } from "@/pages/Universities";
 import { Amphitheaters } from "@/pages/Amphitheaters";
+import { UniversityClassrooms } from "@/pages/UniversityClassrooms";
 import { Notifications } from "@/pages/Notifications";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +33,11 @@ const App = () => (
           <Route path="/amphitheaters" element={
             <DashboardLayout>
               <Amphitheaters />
+            </DashboardLayout>
+          } />
+          <Route path="/universities/:universityId/classrooms" element={
+            <DashboardLayout>
+              <UniversityClassrooms />
             </DashboardLayout>
           } />
           <Route path="/notifications" element={

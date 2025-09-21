@@ -22,14 +22,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { LocationSelector } from "@/components/shared/LocationSelector";
+import { ImageUpload } from "@/components/shared/ImageUpload";
+import { useUniversities } from "@/hooks/use-universities";
+import { apiService } from "@/services/api";
 import { toast } from "sonner";
 
 interface Amphitheater {
-  id?: number;
+  id?: string; // UUID
   name: string;
   slug: string;
   university: string;
-  universityId: number;
+  universityId: string; // UUID
   location: string;
   capacity: number;
   equipment: string[];
@@ -39,6 +42,9 @@ interface Amphitheater {
   latitude?: number;
   longitude?: number;
   address?: string;
+  // Images
+  mainImage?: File | string;
+  annexes?: File[] | string[];
 }
 
 interface AmphitheaterModalProps {
@@ -49,29 +55,29 @@ interface AmphitheaterModalProps {
   onSave: (amphitheater: Amphitheater) => void;
 }
 
-const universities = [
-  { id: 1, name: "Université Paris Tech" },
-  { id: 2, name: "Sorbonne Université" },
-  { id: 3, name: "Université Lyon 1" }
-];
+// Les universités sont maintenant récupérées via le hook useUniversities
 
-export const AmphitheaterModal = ({ 
-  open, 
-  onOpenChange, 
-  amphitheater, 
-  mode, 
-  onSave 
+export const AmphitheaterModal = ({
+  open,
+  onOpenChange,
+  amphitheater,
+  mode,
+  onSave
 }: AmphitheaterModalProps) => {
   const isReadOnly = mode === 'view';
   const isEdit = mode === 'edit';
   const [newEquipment, setNewEquipment] = useState("");
+  const { universities, loading: universitiesLoading, error: universitiesError } = useUniversities();
+  
+  // Debug
+  console.log('Universities in modal:', universities, 'Loading:', universitiesLoading, 'Error:', universitiesError);
 
   const form = useForm<Amphitheater>({
     defaultValues: {
       name: '',
       slug: '',
       university: '',
-      universityId: 0,
+      universityId: '',
       location: '',
       capacity: 0,
       equipment: [],
@@ -79,7 +85,9 @@ export const AmphitheaterModal = ({
       description: '',
       latitude: undefined,
       longitude: undefined,
-      address: ''
+      address: '',
+      mainImage: undefined,
+      annexes: []
     }
   });
 
@@ -93,7 +101,7 @@ export const AmphitheaterModal = ({
         name: '',
         slug: '',
         university: '',
-        universityId: 0,
+        universityId: '',
         location: '',
         capacity: 0,
         equipment: [],
@@ -101,7 +109,9 @@ export const AmphitheaterModal = ({
         description: '',
         latitude: undefined,
         longitude: undefined,
-        address: ''
+        address: '',
+        mainImage: undefined,
+        annexes: []
       });
     }
   }, [amphitheater, open, form]);
@@ -131,23 +141,64 @@ export const AmphitheaterModal = ({
   };
 
   const onUniversityChange = (universityId: string) => {
-    const university = universities.find(u => u.id.toString() === universityId);
+    const university = universities.find(u => u.id === universityId);
     if (university) {
       form.setValue('universityId', university.id);
       form.setValue('university', university.name);
     }
   };
 
-  const onSubmit = (data: Amphitheater) => {
-    const amphitheaterData = {
-      ...data,
-      slug: generateSlug(data.name),
-      id: amphitheater?.id
-    };
-    
-    onSave(amphitheaterData);
-    onOpenChange(false);
-    toast.success(isEdit ? 'Amphithéâtre modifié avec succès' : 'Amphithéâtre créé avec succès');
+  const onSubmit = async (data: Amphitheater) => {
+    try {
+      // Préparer les données pour l'API backend
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('slug', generateSlug(data.name));
+      
+      // Ajouter les coordonnées (lng/lat comme attendu par le backend)
+      if (data.longitude !== undefined) {
+        formData.append('lng', data.longitude.toString());
+      }
+      if (data.latitude !== undefined) {
+        formData.append('lat', data.latitude.toString());
+      }
+
+      // Ajouter l'image principale si elle existe
+      if (data.mainImage && data.mainImage instanceof File) {
+        formData.append('main_image', data.mainImage);
+      }
+
+      // Ajouter les images annexes si elles existent
+      if (data.annexes && Array.isArray(data.annexes)) {
+        data.annexes.forEach((file, index) => {
+          if (file instanceof File) {
+            formData.append(`annexes[${index}]`, file);
+          }
+        });
+      }
+
+      let result;
+      if (isEdit && amphitheater?.id) {
+        result = await apiService.updateAmphitheater(amphitheater.id, formData);
+      } else {
+        result = await apiService.createAmphitheater(formData);
+      }
+
+      // Pour l'instant, on continue à utiliser la fonction onSave locale
+      // jusqu'à ce que la liste soit aussi connectée au backend
+      const amphitheaterData = {
+        ...data,
+        slug: generateSlug(data.name),
+        id: amphitheater?.id || result?.data?.id
+      };
+      
+      onSave(amphitheaterData);
+      onOpenChange(false);
+      toast.success(isEdit ? 'Amphithéâtre modifié avec succès' : 'Amphithéâtre créé avec succès');
+    } catch (error) {
+      console.error('Error saving amphitheater:', error);
+      toast.error('Erreur lors de la sauvegarde de l\'amphithéâtre');
+    }
   };
 
   const getTitle = () => {
@@ -165,15 +216,15 @@ export const AmphitheaterModal = ({
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
-            {mode === 'view' 
+            {mode === 'view'
               ? 'Consultez les informations de cet amphithéâtre'
-              : isEdit 
+              : isEdit
                 ? 'Modifiez les informations de cet amphithéâtre'
                 : 'Remplissez les informations pour créer un nouvel amphithéâtre'
             }
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid gap-4">
             <div className="space-y-2">
@@ -188,22 +239,35 @@ export const AmphitheaterModal = ({
 
             <div className="space-y-2">
               <Label htmlFor="university">Université</Label>
-              <Select 
-                value={form.watch('universityId')?.toString()} 
+              <Select
+                value={form.watch('universityId')}
                 onValueChange={onUniversityChange}
-                disabled={isReadOnly}
+                disabled={isReadOnly || universitiesLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez une université" />
+                  <SelectValue 
+                    placeholder={
+                      universitiesLoading 
+                        ? "Chargement des universités..." 
+                        : universitiesError 
+                          ? "Erreur de chargement" 
+                          : "Sélectionnez une université"
+                    } 
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {universities.map(uni => (
-                    <SelectItem key={uni.id} value={uni.id.toString()}>
+                    <SelectItem key={uni.id} value={uni.id}>
                       {uni.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {universitiesError && (
+                <p className="text-sm text-destructive">
+                  Erreur: {universitiesError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -221,7 +285,7 @@ export const AmphitheaterModal = ({
               <Input
                 id="capacity"
                 type="number"
-                {...form.register('capacity', { 
+                {...form.register('capacity', {
                   required: !isReadOnly,
                   valueAsNumber: true,
                   min: 1
@@ -245,8 +309,8 @@ export const AmphitheaterModal = ({
 
             <div className="space-y-2">
               <Label htmlFor="status">Statut</Label>
-              <Select 
-                value={form.watch('status')} 
+              <Select
+                value={form.watch('status')}
                 onValueChange={(value) => form.setValue('status', value as 'active' | 'maintenance' | 'draft')}
                 disabled={isReadOnly}
               >
@@ -286,8 +350,8 @@ export const AmphitheaterModal = ({
                   <Badge key={index} variant="secondary" className="flex items-center gap-1">
                     {item}
                     {!isReadOnly && (
-                      <X 
-                        className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
                         onClick={() => removeEquipment(index)}
                       />
                     )}
@@ -312,6 +376,23 @@ export const AmphitheaterModal = ({
                 }
               }}
               disabled={isReadOnly}
+            />
+
+            <ImageUpload
+              label="Image principale"
+              value={form.watch('mainImage')}
+              onChange={(file) => form.setValue('mainImage', file as File)}
+              disabled={isReadOnly}
+              multiple={false}
+            />
+
+            <ImageUpload
+              label="Images annexes"
+              value={form.watch('annexes')}
+              onChange={(files) => form.setValue('annexes', files as File[])}
+              disabled={isReadOnly}
+              multiple={true}
+              maxFiles={5}
             />
           </div>
 

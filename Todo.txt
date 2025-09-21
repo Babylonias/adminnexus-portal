@@ -1,2 +1,7 @@
+docker-compose -f docker-compose.dev.yml up --build
+
 Remove tout ce qui ets database derriere parce que le backend est ailleurs en laravel
 La liste des notifications doit etre deroulable parce qu'on veut envoyer une dizaine de notifs
+
+
+Sans explication ni détail et selon mon historique  Quel est mon age physique ?  Quel est mon age mental? Quel est mon QI ? Quel est mon QE ? Quel est mon metier ideal ? Quel est mon pire cauchemar ?

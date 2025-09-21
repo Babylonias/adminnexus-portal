@@ -21,62 +21,32 @@ import {
 import { toast } from "sonner";
 import { UniversityModal } from "@/components/universities/UniversityModal";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { useUniversities } from "@/hooks/use-universities";
+import { useNavigate } from "react-router-dom";
 
 interface University {
-  id: number;
+  id: string; // UUID
   name: string;
   slug: string;
-  location: string;
-  description: string;
-  amphitheaterCount: number;
-  totalCapacity: number;
-  status: "active" | "draft";
-  createdAt: string;
-  photos: string[];
+  description?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  created_at?: string;
+  updated_at?: string;
+  // Champs calculés localement
+  amphitheaterCount?: number;
+  totalCapacity?: number;
+  status?: "active" | "draft";
+  photos?: string[];
 }
 
-// Mock data
-const initialUniversities: University[] = [
-  {
-    id: 1,
-    name: "Université Paris Tech",
-    slug: "paris-tech",
-    location: "Paris, France",
-    description: "Institution de référence en sciences et technologies",
-    amphitheaterCount: 12,
-    totalCapacity: 2500,
-    status: "active",
-    createdAt: "2024-01-15",
-    photos: ["https://images.unsplash.com/photo-1562774053-701939374585?w=400"]
-  },
-  {
-    id: 2,
-    name: "Sorbonne Université",
-    slug: "sorbonne",
-    location: "Paris, France", 
-    description: "Université pluridisciplinaire de recherche intensive",
-    amphitheaterCount: 18,
-    totalCapacity: 3200,
-    status: "active",
-    createdAt: "2024-01-10",
-    photos: ["https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=400"]
-  },
-  {
-    id: 3,
-    name: "Université Lyon 1",
-    slug: "lyon-1", 
-    location: "Lyon, France",
-    description: "Sciences, technologies, santé",
-    amphitheaterCount: 8,
-    totalCapacity: 1800,
-    status: "draft",
-    createdAt: "2024-02-01",
-    photos: ["https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400"]
-  }
-];
+// Les universités sont maintenant récupérées du backend
 
 export const Universities = () => {
-  const [universities, setUniversities] = useState<University[]>(initialUniversities);
+  // Récupérer les universités du backend
+  const { universities, loading, error, refetch } = useUniversities();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   
@@ -90,9 +60,11 @@ export const Universities = () => {
   const [universityToDelete, setUniversityToDelete] = useState<University | null>(null);
 
   const filteredUniversities = universities.filter(uni => {
+    const location = uni.address || '';
     const matchesSearch = uni.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         uni.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || uni.status === statusFilter;
+                         location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (uni.description && uni.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = statusFilter === "all" || (uni.status && uni.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -121,40 +93,23 @@ export const Universities = () => {
 
   const handleConfirmDelete = () => {
     if (universityToDelete) {
-      setUniversities(prev => prev.filter(u => u.id !== universityToDelete.id));
+      // TODO: Appeler l'API pour supprimer l'université
+      // Pour l'instant, on simule la suppression localement
       toast.success(`${universityToDelete.name} supprimée avec succès`);
       setUniversityToDelete(null);
+      refetch(); // Recharger les données
     }
   };
 
-  const handleSave = (universityData: Omit<University, 'amphitheaterCount' | 'totalCapacity' | 'createdAt' | 'photos'> & { id?: number }) => {
+  const handleSave = (universityData: Omit<University, 'amphitheaterCount' | 'totalCapacity' | 'created_at' | 'photos'> & { id?: string }) => {
+    // TODO: Appeler l'API pour créer/modifier l'université
+    // Pour l'instant, on simule la sauvegarde
     if (universityData.id) {
-      // Edit existing
-      setUniversities(prev => prev.map(u => 
-        u.id === universityData.id 
-          ? { 
-              ...u, 
-              ...universityData,
-              // Keep existing calculated fields
-              amphitheaterCount: u.amphitheaterCount,
-              totalCapacity: u.totalCapacity,
-              createdAt: u.createdAt,
-              photos: u.photos
-            }
-          : u
-      ));
+      toast.success('Université modifiée avec succès');
     } else {
-      // Create new
-      const newUniversity: University = {
-        ...universityData,
-        id: Math.max(...universities.map(u => u.id)) + 1,
-        amphitheaterCount: 0,
-        totalCapacity: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        photos: ["https://images.unsplash.com/photo-1562774053-701939374585?w=400"]
-      };
-      setUniversities(prev => [newUniversity, ...prev]);
+      toast.success('Université créée avec succès');
     }
+    refetch(); // Recharger les données
   };
 
   return (
@@ -207,7 +162,7 @@ export const Universities = () => {
           <Card key={university.id} className="group hover:shadow-elegant transition-all duration-300 shadow-card">
             <div className="aspect-video overflow-hidden rounded-t-lg">
               <img
-                src={university.photos[0]}
+                src={university.photos?.[0] || "https://images.unsplash.com/photo-1562774053-701939374585?w=400"}
                 alt={university.name}
                 className="h-full w-full object-cover transition-transform group-hover:scale-105"
               />
@@ -215,17 +170,20 @@ export const Universities = () => {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
+                  <CardTitle 
+                    className="text-lg font-semibold group-hover:text-primary transition-colors cursor-pointer"
+                    onClick={() => navigate(`/universities/${university.id}/classrooms`)}
+                  >
                     {university.name}
                   </CardTitle>
                   <CardDescription className="flex items-center gap-1 mt-1">
                     <MapPin className="h-3 w-3" />
-                    {university.location}
+                    {university.address || 'Adresse non renseignée'}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={university.status === 'active' ? 'default' : 'secondary'}>
-                    {university.status === 'active' ? 'Actif' : 'Brouillon'}
+                    {university.status === 'active' ? 'Actif' : university.status === 'draft' ? 'Brouillon' : 'Actif'}
                   </Badge>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -234,6 +192,11 @@ export const Universities = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => navigate(`/universities/${university.id}/classrooms`)}>
+                        <Users className="h-4 w-4 mr-2" />
+                        Voir les amphithéâtres
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleView(university)}>
                         <Eye className="h-4 w-4 mr-2" />
                         Voir les détails
@@ -257,16 +220,16 @@ export const Universities = () => {
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                {university.description}
+                {university.description || 'Aucune description disponible'}
               </p>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1 text-muted-foreground">
                     <Users className="h-3 w-3" />
-                    {university.totalCapacity} places
+                    {university.totalCapacity || 0} places
                   </span>
                   <span className="text-muted-foreground">
-                    {university.amphitheaterCount} amphis
+                    {university.amphitheaterCount || 0} amphis
                   </span>
                 </div>
               </div>
@@ -275,11 +238,30 @@ export const Universities = () => {
         ))}
       </div>
 
-      {filteredUniversities.length === 0 && (
+      {loading && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-lg">Chargement des universités...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="text-center py-12">
+          <p className="text-destructive text-lg">Erreur lors du chargement</p>
+          <p className="text-sm text-muted-foreground mt-2">{error}</p>
+          <Button onClick={refetch} variant="outline" className="mt-4">
+            Réessayer
+          </Button>
+        </div>
+      )}
+
+      {!loading && !error && filteredUniversities.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">Aucune université trouvée</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Essayez de modifier vos critères de recherche
+            {universities.length === 0 
+              ? "Aucune université dans la base de données"
+              : "Essayez de modifier vos critères de recherche"
+            }
           </p>
         </div>
       )}

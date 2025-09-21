@@ -21,12 +21,13 @@ services:
       - ./components.json:/app/components.json
     env_file:
       - .env
-    environment:
-      - NODE_ENV=development
     restart: unless-stopped
     networks:
       - campuswa-dev-network
+      - campus-wa-front-to-back
 
 networks:
   campuswa-dev-network:
     driver: bridge
+  campus-wa-front-to-back:
+    external: true

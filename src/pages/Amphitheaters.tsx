@@ -21,98 +21,63 @@ import {
 import { toast } from "sonner";
 import { AmphitheaterModal } from "@/components/amphitheaters/AmphitheaterModal";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { useUniversities } from "@/hooks/use-universities";
 
 interface Amphitheater {
-  id: number;
+  id: string; // UUID
   name: string;
   slug: string;
   university: string;
-  universityId: number;
+  universityId: string; // UUID
   location: string;
   capacity: number;
   equipment: string[];
   status: "active" | "maintenance" | "draft";
   description: string;
   createdAt: string;
+  // Coordonnées GPS
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  // Images
+  mainImage?: string;
+  annexes?: string[];
 }
 
-// Mock data
-const initialAmphitheaters: Amphitheater[] = [
-  {
-    id: 1,
-    name: "Amphi Sciences 200",
-    slug: "amphi-sciences-200",
-    university: "Université Paris Tech",
-    universityId: 1,
-    location: "Bâtiment A, 2ème étage",
-    capacity: 200,
-    equipment: ["Projecteur 4K", "Son surround", "Tableau interactif"],
-    status: "active" as const,
-    description: "Grand amphithéâtre pour les cours magistraux",
-    createdAt: "2024-01-20"
-  },
-  {
-    id: 2,
-    name: "Amphi Central",
-    slug: "amphi-central",
-    university: "Sorbonne Université", 
-    universityId: 2,
-    location: "Bâtiment principal, RDC",
-    capacity: 350,
-    equipment: ["Projecteur laser", "Micro sans fil", "Écran géant"],
-    status: "active" as const,
-    description: "Amphithéâtre principal pour les conférences",
-    createdAt: "2024-01-18"
-  },
-  {
-    id: 3,
-    name: "Amphi Recherche",
-    slug: "amphi-recherche",
-    university: "Université Lyon 1",
-    universityId: 3,
-    location: "Campus Sciences, Bât. B",
-    capacity: 150,
-    equipment: ["Projecteur HD", "Système audio"],
-    status: "maintenance" as const,
-    description: "Amphithéâtre dédié aux présentations de recherche",
-    createdAt: "2024-02-05"
-  },
-  {
-    id: 4,
-    name: "Amphi Médecine",
-    slug: "amphi-medecine", 
-    university: "Sorbonne Université",
-    universityId: 2,
-    location: "Faculté de Médecine",
-    capacity: 120,
-    equipment: ["Projecteur médical", "Écran tactile"],
-    status: "draft" as const,
-    description: "Amphithéâtre spécialisé pour les études médicales",
-    createdAt: "2024-02-10"
-  }
-];
+// Mock data - sera remplacé par les données du backend plus tard
+const initialAmphitheaters: Amphitheater[] = [];
 
 export const Amphitheaters = () => {
   const [amphitheaters, setAmphitheaters] = useState<Amphitheater[]>(initialAmphitheaters);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [universityFilter, setUniversityFilter] = useState("all");
-  
+
+  // Récupérer les universités du backend
+  const { universities, loading: universitiesLoading } = useUniversities();
+
+  // Fonction utilitaire pour récupérer le nom de l'université
+  const getUniversityName = (universityId: string) => {
+    const university = universities.find(u => u.id === universityId);
+    return university?.name || 'Université inconnue';
+  };
+
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedAmphitheater, setSelectedAmphitheater] = useState<Amphitheater | undefined>();
-  
+
   // Confirmation dialog states
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [amphitheaterToDelete, setAmphitheaterToDelete] = useState<Amphitheater | null>(null);
 
   const filteredAmphitheaters = amphitheaters.filter(amphi => {
+    const universityName = getUniversityName(amphi.universityId);
     const matchesSearch = amphi.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         amphi.university.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         amphi.location.toLowerCase().includes(searchTerm.toLowerCase());
+      universityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      amphi.location.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || amphi.status === statusFilter;
-    const matchesUniversity = universityFilter === "all" || amphi.universityId.toString() === universityFilter;
+    const matchesUniversity = universityFilter === "all" || amphi.universityId === universityFilter;
     return matchesSearch && matchesStatus && matchesUniversity;
   });
 
@@ -147,22 +112,22 @@ export const Amphitheaters = () => {
     }
   };
 
-  const handleSave = (amphitheaterData: Omit<Amphitheater, 'createdAt'> & { id?: number }) => {
+  const handleSave = (amphitheaterData: Omit<Amphitheater, 'createdAt'> & { id?: string }) => {
     if (amphitheaterData.id) {
       // Edit existing
-      setAmphitheaters(prev => prev.map(a => 
-        a.id === amphitheaterData.id 
-          ? { 
-              ...amphitheaterData,
-              createdAt: prev.find(p => p.id === amphitheaterData.id)?.createdAt || new Date().toISOString().split('T')[0]
-            } as Amphitheater
+      setAmphitheaters(prev => prev.map(a =>
+        a.id === amphitheaterData.id
+          ? {
+            ...amphitheaterData,
+            createdAt: prev.find(p => p.id === amphitheaterData.id)?.createdAt || new Date().toISOString().split('T')[0]
+          } as Amphitheater
           : a
       ));
     } else {
       // Create new
       const newAmphitheater: Amphitheater = {
         ...amphitheaterData,
-        id: Math.max(...amphitheaters.map(a => a.id)) + 1,
+        id: amphitheaterData.id || `amphi-${Date.now()}`, // Utiliser l'ID du backend ou générer un temporaire
         createdAt: new Date().toISOString().split('T')[0]
       } as Amphitheater;
       setAmphitheaters(prev => [newAmphitheater, ...prev]);
@@ -231,13 +196,21 @@ export const Amphitheaters = () => {
           </Select>
           <Select value={universityFilter} onValueChange={setUniversityFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Université" />
+              <SelectValue
+                placeholder={
+                  universitiesLoading
+                    ? "Chargement..."
+                    : "Université"
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les universités</SelectItem>
-              <SelectItem value="1">Université Paris Tech</SelectItem>
-              <SelectItem value="2">Sorbonne Université</SelectItem>
-              <SelectItem value="3">Université Lyon 1</SelectItem>
+              {universities.map(university => (
+                <SelectItem key={university.id} value={university.id}>
+                  {university.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -255,7 +228,7 @@ export const Amphitheaters = () => {
                     {amphitheater.name}
                   </CardTitle>
                   <CardDescription className="mt-1">
-                    {amphitheater.university}
+                    {getUniversityName(amphitheater.universityId)}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -278,7 +251,7 @@ export const Amphitheaters = () => {
                         Modifier
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => handleDeleteClick(amphitheater)}
                         className="text-destructive focus:text-destructive"
                       >
@@ -294,13 +267,13 @@ export const Amphitheaters = () => {
               <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                 {amphitheater.description}
               </p>
-              
+
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm">
                   <MapPin className="h-3 w-3 text-muted-foreground" />
                   <span className="text-muted-foreground">{amphitheater.location}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2 text-sm">
                   <Users className="h-3 w-3 text-muted-foreground" />
                   <span className="font-medium">{amphitheater.capacity} places</span>
@@ -327,12 +300,21 @@ export const Amphitheaters = () => {
         ))}
       </div>
 
-      {filteredAmphitheaters.length === 0 && (
+      {filteredAmphitheaters.length === 0 && !universitiesLoading && (
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">Aucun amphithéâtre trouvé</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Essayez de modifier vos critères de recherche
+            {amphitheaters.length === 0
+              ? "Aucun amphithéâtre créé pour le moment"
+              : "Essayez de modifier vos critères de recherche"
+            }
           </p>
+        </div>
+      )}
+
+      {universitiesLoading && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-lg">Chargement des universités...</p>
         </div>
       )}
 
