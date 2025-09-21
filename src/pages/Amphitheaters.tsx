@@ -36,8 +36,8 @@ interface Amphitheater {
   description: string;
   createdAt: string;
   // Coordonnées GPS
-  latitude?: number;
-  longitude?: number;
+  lat?: number;
+  lng?: number;
   address?: string;
   // Images
   mainImage?: string;

@@ -11,8 +11,8 @@ import { cn } from '@/lib/utils';
 
 interface LocationData {
   address?: string;
-  latitude?: number;
-  longitude?: number;
+  lat?: number;
+  lng?: number;
 }
 
 interface LocationSelectorProps {
@@ -25,27 +25,55 @@ interface LocationSelectorProps {
 // Clé API Google Maps depuis les variables d'environnement
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-export const LocationSelector = ({ 
-  value, 
-  onChange, 
-  disabled = false, 
-  className 
+export const LocationSelector = ({
+  value,
+  onChange,
+  disabled = false,
+  className
 }: LocationSelectorProps) => {
   const [activeTab, setActiveTab] = useState<'map' | 'coordinates'>('map');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [address, setAddress] = useState(value?.address || '');
-  const [latitude, setLatitude] = useState(value?.latitude?.toString() || '');
-  const [longitude, setLongitude] = useState(value?.longitude?.toString() || '');
+  const [lat, setLat] = useState(value?.lat?.toString() || '');
+  const [lng, setLng] = useState(value?.lng?.toString() || '');
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [useApiKey, setUseApiKey] = useState(false);
-  
+
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
   const markerInstance = useRef<google.maps.Marker | null>(null);
 
+  // Synchroniser les valeurs quand les props changent
+  useEffect(() => {
+    if (value) {
+      console.log('LocationSelector received value:', value); // Debug
+      setAddress(value.address || '');
+      setLat(value.lat?.toString() || '');
+      setLng(value.lng?.toString() || '');
+
+      // Mettre à jour la carte si elle est chargée et qu'on a des coordonnées
+      if (mapInstance.current && value.lat && value.lng) {
+        const position = { lat: value.lat, lng: value.lng };
+        mapInstance.current.setCenter(position);
+
+        // Supprimer l'ancien marqueur s'il existe
+        if (markerInstance.current) {
+          markerInstance.current.setMap(null);
+        }
+
+        // Créer un nouveau marqueur
+        markerInstance.current = new google.maps.Marker({
+          position: position,
+          map: mapInstance.current,
+          draggable: !disabled,
+        });
+      }
+    }
+  }, [value, disabled]);
+
   // Initialiser Google Maps
   useEffect(() => {
-    if (activeTab === 'map' && !mapLoaded && (GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY' || useApiKey)) {
+    if (activeTab === 'map' && !mapLoaded && (GOOGLE_MAPS_API_KEY || useApiKey)) {
       const loader = new Loader({
         apiKey: useApiKey ? apiKeyInput : GOOGLE_MAPS_API_KEY,
         version: 'weekly',
@@ -55,10 +83,10 @@ export const LocationSelector = ({
       loader.load().then(() => {
         if (mapRef.current) {
           const defaultLocation = { lat: 48.8566, lng: 2.3522 }; // Paris par défaut
-          
+
           mapInstance.current = new google.maps.Map(mapRef.current, {
-            center: value?.latitude && value?.longitude 
-              ? { lat: value.latitude, lng: value.longitude }
+            center: value?.lat && value?.lng
+              ? { lat: value.lat, lng: value.lng }
               : defaultLocation,
             zoom: 15,
             streetViewControl: false,
@@ -66,9 +94,9 @@ export const LocationSelector = ({
           });
 
           // Ajouter un marqueur si des coordonnées existent
-          if (value?.latitude && value?.longitude) {
+          if (value?.lat && value?.lng) {
             markerInstance.current = new google.maps.Marker({
-              position: { lat: value.latitude, lng: value.longitude },
+              position: { lat: value.lat, lng: value.lng },
               map: mapInstance.current,
               draggable: !disabled,
             });
@@ -76,29 +104,29 @@ export const LocationSelector = ({
             if (!disabled) {
               markerInstance.current.addListener('dragend', (event: google.maps.MapMouseEvent) => {
                 if (event.latLng) {
-                  const lat = event.latLng.lat();
-                  const lng = event.latLng.lng();
-                  
+                  const newLat = event.latLng.lat();
+                  const newLng = event.latLng.lng();
+
                   // Géocodage inverse pour obtenir l'adresse
                   const geocoder = new google.maps.Geocoder();
-                  geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                  geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results, status) => {
                     if (status === 'OK' && results?.[0]) {
                       onChange({
                         address: results[0].formatted_address,
-                        latitude: lat,
-                        longitude: lng,
+                        lat: newLat,
+                        lng: newLng,
                       });
                       setAddress(results[0].formatted_address);
-                      setLatitude(lat.toString());
-                      setLongitude(lng.toString());
+                      setLat(newLat.toString());
+                      setLng(newLng.toString());
                     } else {
                       onChange({
                         address: value?.address,
-                        latitude: lat,
-                        longitude: lng,
+                        lat: newLat,
+                        lng: newLng,
                       });
-                      setLatitude(lat.toString());
-                      setLongitude(lng.toString());
+                      setLat(newLat.toString());
+                      setLng(newLng.toString());
                     }
                   });
                 }
@@ -110,8 +138,8 @@ export const LocationSelector = ({
           if (!disabled) {
             mapInstance.current.addListener('click', (event: google.maps.MapMouseEvent) => {
               if (event.latLng) {
-                const lat = event.latLng.lat();
-                const lng = event.latLng.lng();
+                const clickLat = event.latLng.lat();
+                const clickLng = event.latLng.lng();
 
                 // Supprimer l'ancien marqueur
                 if (markerInstance.current) {
@@ -120,31 +148,31 @@ export const LocationSelector = ({
 
                 // Créer un nouveau marqueur
                 markerInstance.current = new google.maps.Marker({
-                  position: { lat, lng },
+                  position: { lat: clickLat, lng: clickLng },
                   map: mapInstance.current,
                   draggable: true,
                 });
 
                 // Géocodage inverse
                 const geocoder = new google.maps.Geocoder();
-                geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                geocoder.geocode({ location: { lat: clickLat, lng: clickLng } }, (results, status) => {
                   if (status === 'OK' && results?.[0]) {
                     onChange({
                       address: results[0].formatted_address,
-                      latitude: lat,
-                      longitude: lng,
+                      lat: clickLat,
+                      lng: clickLng,
                     });
                     setAddress(results[0].formatted_address);
-                    setLatitude(lat.toString());
-                    setLongitude(lng.toString());
+                    setLat(clickLat.toString());
+                    setLng(clickLng.toString());
                   } else {
                     onChange({
                       address: value?.address,
-                      latitude: lat,
-                      longitude: lng,
+                      lat: clickLat,
+                      lng: clickLng,
                     });
-                    setLatitude(lat.toString());
-                    setLongitude(lng.toString());
+                    setLat(clickLat.toString());
+                    setLng(clickLng.toString());
                   }
                 });
 
@@ -153,26 +181,26 @@ export const LocationSelector = ({
                   if (dragEvent.latLng) {
                     const newLat = dragEvent.latLng.lat();
                     const newLng = dragEvent.latLng.lng();
-                    
+
                     const geocoder = new google.maps.Geocoder();
                     geocoder.geocode({ location: { lat: newLat, lng: newLng } }, (results, status) => {
                       if (status === 'OK' && results?.[0]) {
                         onChange({
                           address: results[0].formatted_address,
-                          latitude: newLat,
-                          longitude: newLng,
+                          lat: newLat,
+                          lng: newLng,
                         });
                         setAddress(results[0].formatted_address);
-                        setLatitude(newLat.toString());
-                        setLongitude(newLng.toString());
+                        setLat(newLat.toString());
+                        setLng(newLng.toString());
                       } else {
                         onChange({
                           address: value?.address,
-                          latitude: newLat,
-                          longitude: newLng,
+                          lat: newLat,
+                          lng: newLng,
                         });
-                        setLatitude(newLat.toString());
-                        setLongitude(newLng.toString());
+                        setLat(newLat.toString());
+                        setLng(newLng.toString());
                       }
                     });
                   }
@@ -190,26 +218,26 @@ export const LocationSelector = ({
   }, [activeTab, mapLoaded, value, onChange, disabled, apiKeyInput, useApiKey]);
 
   const handleCoordinateChange = () => {
-    const lat = parseFloat(latitude);
-    const lng = parseFloat(longitude);
-    
-    if (!isNaN(lat) && !isNaN(lng)) {
+    const latValue = parseFloat(lat);
+    const lngValue = parseFloat(lng);
+
+    if (!isNaN(latValue) && !isNaN(lngValue)) {
       onChange({
         address: address || value?.address,
-        latitude: lat,
-        longitude: lng,
+        lat: latValue,
+        lng: lngValue,
       });
 
       // Mettre à jour la carte si elle est chargée
       if (mapInstance.current) {
-        const position = { lat, lng };
+        const position = { lat: latValue, lng: lngValue };
         mapInstance.current.setCenter(position);
-        
+
         // Supprimer l'ancien marqueur s'il existe
         if (markerInstance.current) {
           markerInstance.current.setMap(null);
         }
-        
+
         // Créer un nouveau marqueur
         markerInstance.current = new google.maps.Marker({
           position: position,
@@ -223,14 +251,14 @@ export const LocationSelector = ({
             if (dragEvent.latLng) {
               const newLat = dragEvent.latLng.lat();
               const newLng = dragEvent.latLng.lng();
-              
-              setLatitude(newLat.toString());
-              setLongitude(newLng.toString());
-              
+
+              setLat(newLat.toString());
+              setLng(newLng.toString());
+
               onChange({
                 address: address || value?.address,
-                latitude: newLat,
-                longitude: newLng,
+                lat: newLat,
+                lng: newLng,
               });
             }
           });
@@ -243,23 +271,23 @@ export const LocationSelector = ({
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          
-          setLatitude(lat.toString());
-          setLongitude(lng.toString());
-          
+          const latValue = position.coords.latitude;
+          const lngValue = position.coords.longitude;
+
+          setLat(latValue.toString());
+          setLng(lngValue.toString());
+
           onChange({
             address: value?.address,
-            latitude: lat,
-            longitude: lng,
+            lat: latValue,
+            lng: lngValue,
           });
 
           // Mettre à jour la carte
           if (mapInstance.current) {
-            const pos = { lat, lng };
+            const pos = { lat: latValue, lng: lngValue };
             mapInstance.current.setCenter(pos);
-            
+
             if (markerInstance.current) {
               markerInstance.current.setPosition(pos);
             } else {
@@ -297,7 +325,7 @@ export const LocationSelector = ({
               onChange={(e) => setApiKeyInput(e.target.value)}
               type="password"
             />
-            <Button 
+            <Button
               onClick={() => setUseApiKey(true)}
               disabled={!apiKeyInput.trim()}
               className="w-full"
@@ -306,8 +334,8 @@ export const LocationSelector = ({
             </Button>
           </div>
           <div className="pt-2 border-t">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setActiveTab('coordinates')}
               className="w-full"
             >
@@ -325,8 +353,8 @@ export const LocationSelector = ({
       <div className={cn("space-y-4", className)}>
         <div className="flex items-center justify-between">
           <Label>Localisation (Coordonnées manuelles)</Label>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => setActiveTab('map')}
             className="text-xs"
@@ -334,25 +362,25 @@ export const LocationSelector = ({
             Retour à la carte
           </Button>
         </div>
-        
+
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="latitude">Latitude</Label>
+              <Label htmlFor="lat">Latitude</Label>
               <Input
-                id="latitude"
+                id="lat"
                 placeholder="ex: 48.8566"
-                value={latitude}
+                value={lat}
                 onChange={(e) => {
-                  setLatitude(e.target.value);
+                  setLat(e.target.value);
                   // Mettre à jour immédiatement si c'est un nombre valide
-                  const lat = parseFloat(e.target.value);
-                  const lng = parseFloat(longitude);
-                  if (!isNaN(lat) && !isNaN(lng)) {
+                  const latValue = parseFloat(e.target.value);
+                  const lngValue = parseFloat(lng);
+                  if (!isNaN(latValue) && !isNaN(lngValue)) {
                     onChange({
                       address: address || value?.address,
-                      latitude: lat,
-                      longitude: lng,
+                      lat: latValue,
+                      lng: lngValue,
                     });
                   }
                 }}
@@ -360,21 +388,21 @@ export const LocationSelector = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="longitude">Longitude</Label>
+              <Label htmlFor="lng">Longitude</Label>
               <Input
-                id="longitude"
+                id="lng"
                 placeholder="ex: 2.3522"
-                value={longitude}
+                value={lng}
                 onChange={(e) => {
-                  setLongitude(e.target.value);
+                  setLng(e.target.value);
                   // Mettre à jour immédiatement si c'est un nombre valide
-                  const lat = parseFloat(latitude);
-                  const lng = parseFloat(e.target.value);
-                  if (!isNaN(lat) && !isNaN(lng)) {
+                  const latValue = parseFloat(lat);
+                  const lngValue = parseFloat(e.target.value);
+                  if (!isNaN(latValue) && !isNaN(lngValue)) {
                     onChange({
                       address: address || value?.address,
-                      latitude: lat,
-                      longitude: lng,
+                      lat: latValue,
+                      lng: lngValue,
                     });
                   }
                 }}
@@ -382,11 +410,11 @@ export const LocationSelector = ({
               />
             </div>
           </div>
-          
+
           {!disabled && (
-            <Button 
+            <Button
               type="button"
-              variant="outline" 
+              variant="outline"
               onClick={getCurrentLocation}
               className="w-full"
             >
@@ -405,17 +433,17 @@ export const LocationSelector = ({
                 setAddress(e.target.value);
                 onChange({
                   address: e.target.value,
-                  latitude: parseFloat(latitude) || value?.latitude,
-                  longitude: parseFloat(longitude) || value?.longitude,
+                  lat: parseFloat(lat) || value?.lat,
+                  lng: parseFloat(lng) || value?.lng,
                 });
               }}
               disabled={disabled}
             />
           </div>
 
-          {(latitude && longitude) && (
+          {(lat && lng) && (
             <div className="p-3 bg-muted rounded-lg text-sm">
-              <p><strong>Coordonnées:</strong> {latitude}, {longitude}</p>
+              <p><strong>Coordonnées:</strong> {lat}, {lng}</p>
               {address && <p><strong>Adresse:</strong> {address}</p>}
             </div>
           )}
@@ -429,8 +457,8 @@ export const LocationSelector = ({
       <div className="flex items-center justify-between">
         <Label>Localisation</Label>
         {(GOOGLE_MAPS_API_KEY || useApiKey) && (
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => setActiveTab(activeTab === 'coordinates' ? 'map' : 'coordinates')}
             className="text-xs"
@@ -439,7 +467,7 @@ export const LocationSelector = ({
           </Button>
         )}
       </div>
-      
+
       {(GOOGLE_MAPS_API_KEY || useApiKey) ? (
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'map' | 'coordinates')}>
           <TabsList className="grid w-full grid-cols-2">
@@ -453,138 +481,138 @@ export const LocationSelector = ({
             </TabsTrigger>
           </TabsList>
 
-        <TabsContent value="map" className="space-y-3">
-          <div 
-            ref={mapRef} 
-            className="w-full h-64 rounded-lg border bg-muted"
-          />
-          {!disabled && (
-            <p className="text-xs text-muted-foreground">
-              Cliquez sur la carte ou déplacez le marqueur pour sélectionner une position
-            </p>
-          )}
-          {address && (
-            <div className="p-2 bg-muted rounded text-sm">
-              <strong>Adresse:</strong> {address}
-            </div>
-          )}
-        </TabsContent>
+          <TabsContent value="map" className="space-y-3">
+            <div
+              ref={mapRef}
+              className="w-full h-64 rounded-lg border bg-muted"
+            />
+            {!disabled && (
+              <p className="text-xs text-muted-foreground">
+                Cliquez sur la carte ou déplacez le marqueur pour sélectionner une position
+              </p>
+            )}
+            {address && (
+              <div className="p-2 bg-muted rounded text-sm">
+                <strong>Adresse:</strong> {address}
+              </div>
+            )}
+          </TabsContent>
 
-        <TabsContent value="coordinates" className="space-y-3">
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude</Label>
-                <Input
-                  id="latitude"
-                  placeholder="ex: 48.8566"
-                  value={latitude}
-                  onChange={(e) => {
-                    setLatitude(e.target.value);
-                    // Mettre à jour immédiatement si c'est un nombre valide
-                    const lat = parseFloat(e.target.value);
-                    const lng = parseFloat(longitude);
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                      onChange({
-                        address: address || value?.address,
-                        latitude: lat,
-                        longitude: lng,
-                      });
-                    }
-                  }}
-                  disabled={disabled}
-                />
+          <TabsContent value="coordinates" className="space-y-3">
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="lat">Latitude</Label>
+                  <Input
+                    id="lat"
+                    placeholder="ex: 48.8566"
+                    value={lat}
+                    onChange={(e) => {
+                      setLat(e.target.value);
+                      // Mettre à jour immédiatement si c'est un nombre valide
+                      const latValue = parseFloat(e.target.value);
+                      const lngValue = parseFloat(lng);
+                      if (!isNaN(latValue) && !isNaN(lngValue)) {
+                        onChange({
+                          address: address || value?.address,
+                          lat: latValue,
+                          lng: lngValue,
+                        });
+                      }
+                    }}
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lng">Longitude</Label>
+                  <Input
+                    id="lng"
+                    placeholder="ex: 2.3522"
+                    value={lng}
+                    onChange={(e) => {
+                      setLng(e.target.value);
+                      // Mettre à jour immédiatement si c'est un nombre valide
+                      const latValue = parseFloat(lat);
+                      const lngValue = parseFloat(e.target.value);
+                      if (!isNaN(latValue) && !isNaN(lngValue)) {
+                        onChange({
+                          address: address || value?.address,
+                          lat: latValue,
+                          lng: lngValue,
+                        });
+                      }
+                    }}
+                    disabled={disabled}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input
-                  id="longitude"
-                  placeholder="ex: 2.3522"
-                  value={longitude}
-                  onChange={(e) => {
-                    setLongitude(e.target.value);
-                    // Mettre à jour immédiatement si c'est un nombre valide
-                    const lat = parseFloat(latitude);
-                    const lng = parseFloat(e.target.value);
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                      onChange({
-                        address: address || value?.address,
-                        latitude: lat,
-                        longitude: lng,
-                      });
-                    }
-                  }}
-                  disabled={disabled}
-                />
-              </div>
+
+              {!disabled && (lat || lng) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCoordinateChange}
+                  className="w-full"
+                  disabled={isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Mettre à jour la position sur la carte
+                </Button>
+              )}
             </div>
-            
-            {!disabled && (latitude || longitude) && (
-              <Button 
+
+            {!disabled && (
+              <Button
                 type="button"
-                variant="outline" 
-                onClick={handleCoordinateChange}
+                variant="outline"
+                onClick={getCurrentLocation}
                 className="w-full"
-                disabled={isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude))}
               >
-                <MapPin className="h-4 w-4 mr-2" />
-                Mettre à jour la position sur la carte
+                <Navigation className="h-4 w-4 mr-2" />
+                Utiliser ma position actuelle
               </Button>
             )}
-          </div>
-          
-          {!disabled && (
-            <Button 
-              type="button"
-              variant="outline" 
-              onClick={getCurrentLocation}
-              className="w-full"
-            >
-              <Navigation className="h-4 w-4 mr-2" />
-              Utiliser ma position actuelle
-            </Button>
-          )}
 
-          {address && (
-            <div className="space-y-2">
-              <Label htmlFor="address">Adresse (optionnelle)</Label>
-              <Input
-                id="address"
-                placeholder="ex: Paris, France"
-                value={address}
-                onChange={(e) => {
-                  setAddress(e.target.value);
-                  onChange({
-                    address: e.target.value,
-                    latitude: parseFloat(latitude) || value?.latitude,
-                    longitude: parseFloat(longitude) || value?.longitude,
-                  });
-                }}
-                disabled={disabled}
-              />
-            </div>
-          )}
-        </TabsContent>
+            {address && (
+              <div className="space-y-2">
+                <Label htmlFor="address">Adresse (optionnelle)</Label>
+                <Input
+                  id="address"
+                  placeholder="ex: Paris, France"
+                  value={address}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    onChange({
+                      address: e.target.value,
+                      lat: parseFloat(lat) || value?.lat,
+                      lng: parseFloat(lng) || value?.lng,
+                    });
+                  }}
+                  disabled={disabled}
+                />
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       ) : (
         // Interface simplifiée pour coordonnées seulement (quand pas de Google Maps)
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="latitude">Latitude</Label>
+              <Label htmlFor="lat">Latitude</Label>
               <Input
-                id="latitude"
+                id="lat"
                 placeholder="ex: 48.8566"
-                value={latitude}
+                value={lat}
                 onChange={(e) => {
-                  setLatitude(e.target.value);
-                  const lat = parseFloat(e.target.value);
-                  const lng = parseFloat(longitude);
-                  if (!isNaN(lat) && !isNaN(lng)) {
+                  setLat(e.target.value);
+                  const latValue = parseFloat(e.target.value);
+                  const lngValue = parseFloat(lng);
+                  if (!isNaN(latValue) && !isNaN(lngValue)) {
                     onChange({
                       address: address || value?.address,
-                      latitude: lat,
-                      longitude: lng,
+                      lat: latValue,
+                      lng: lngValue,
                     });
                   }
                 }}
@@ -592,20 +620,20 @@ export const LocationSelector = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="longitude">Longitude</Label>
+              <Label htmlFor="lng">Longitude</Label>
               <Input
-                id="longitude"
+                id="lng"
                 placeholder="ex: 2.3522"
-                value={longitude}
+                value={lng}
                 onChange={(e) => {
-                  setLongitude(e.target.value);
-                  const lat = parseFloat(latitude);
-                  const lng = parseFloat(e.target.value);
-                  if (!isNaN(lat) && !isNaN(lng)) {
+                  setLng(e.target.value);
+                  const latValue = parseFloat(lat);
+                  const lngValue = parseFloat(e.target.value);
+                  if (!isNaN(latValue) && !isNaN(lngValue)) {
                     onChange({
                       address: address || value?.address,
-                      latitude: lat,
-                      longitude: lng,
+                      lat: latValue,
+                      lng: lngValue,
                     });
                   }
                 }}
@@ -613,11 +641,11 @@ export const LocationSelector = ({
               />
             </div>
           </div>
-          
+
           {!disabled && (
-            <Button 
+            <Button
               type="button"
-              variant="outline" 
+              variant="outline"
               onClick={getCurrentLocation}
               className="w-full"
             >
@@ -636,17 +664,17 @@ export const LocationSelector = ({
                 setAddress(e.target.value);
                 onChange({
                   address: e.target.value,
-                  latitude: parseFloat(latitude) || value?.latitude,
-                  longitude: parseFloat(longitude) || value?.longitude,
+                  lat: parseFloat(lat) || value?.lat,
+                  lng: parseFloat(lng) || value?.lng,
                 });
               }}
               disabled={disabled}
             />
           </div>
 
-          {(latitude && longitude) && (
+          {(lat && lng) && (
             <div className="p-3 bg-muted rounded-lg text-sm">
-              <p><strong>Coordonnées:</strong> {latitude}, {longitude}</p>
+              <p><strong>Coordonnées:</strong> {lat}, {lng}</p>
               {address && <p><strong>Adresse:</strong> {address}</p>}
             </div>
           )}

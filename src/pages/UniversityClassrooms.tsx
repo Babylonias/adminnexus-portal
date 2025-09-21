@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { apiService, type Classroom } from "@/services/api";
 import { useUniversities } from "@/hooks/use-universities";
+import { AmphitheaterModal } from "@/components/amphitheaters/AmphitheaterModal";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { toast } from "sonner";
 
 // Interface Classroom importée du service API
@@ -25,6 +27,15 @@ export const UniversityClassrooms = () => {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // États pour les modals
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [selectedClassroom, setSelectedClassroom] = useState<any>(undefined);
+  
+  // États pour la confirmation de suppression
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [classroomToDelete, setClassroomToDelete] = useState<Classroom | null>(null);
 
   // Validation de l'UUID
   if (universityId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(universityId)) {
@@ -78,40 +89,115 @@ export const UniversityClassrooms = () => {
   };
 
   const handleCreateNew = () => {
-    // Rediriger vers la page de création d'amphithéâtre avec l'université pré-sélectionnée
-    navigate('/amphitheaters', { 
-      state: { 
-        createNew: true, 
-        preselectedUniversity: { 
-          id: universityId, 
-          name: university?.name 
-        } 
-      } 
-    });
+    // Pré-remplir avec l'université courante
+    const newAmphitheater = {
+      universityId: universityId || '',
+      university: university?.name || '',
+      name: '',
+      slug: '',
+      location: '',
+      capacity: 0,
+      equipment: [],
+      status: 'draft' as const,
+      description: '',
+      lat: undefined,
+      lng: undefined,
+      address: '',
+      mainImage: undefined,
+      annexes: []
+    };
+    
+    setSelectedClassroom(newAmphitheater);
+    setModalMode('create');
+    setModalOpen(true);
+  };
+
+  const handleView = (classroom: Classroom) => {
+    // Convertir Classroom en format Amphitheater pour le modal
+    const amphitheaterData = {
+      id: classroom.id,
+      name: classroom.name,
+      slug: classroom.slug,
+      university: university?.name || '',
+      universityId: universityId || '',
+      location: '', // Pas de champ location dans Classroom
+      capacity: classroom.capacity || 0,
+      equipment: classroom.equipment || [],
+      status: classroom.status || 'active',
+      description: classroom.description || '',
+      lat: classroom.lat ? (typeof classroom.lat === 'string' ? parseFloat(classroom.lat) : classroom.lat) : undefined,
+      lng: classroom.lng ? (typeof classroom.lng === 'string' ? parseFloat(classroom.lng) : classroom.lng) : undefined,
+      address: '',
+      mainImage: classroom.main_image,
+      annexes: classroom.annexes
+    };
+    setSelectedClassroom(amphitheaterData);
+    setModalMode('view');
+    setModalOpen(true);
   };
 
   const handleEdit = (classroom: Classroom) => {
-    // Rediriger vers la page d'édition d'amphithéâtre
-    navigate('/amphitheaters', { 
-      state: { 
-        editClassroom: classroom,
-        preselectedUniversity: { 
-          id: universityId, 
-          name: university?.name 
-        } 
-      } 
-    });
+    // Convertir Classroom en format Amphitheater pour le modal
+    const amphitheaterData = {
+      id: classroom.id,
+      name: classroom.name,
+      slug: classroom.slug,
+      university: university?.name || '',
+      universityId: universityId || '',
+      location: '', // Pas de champ location dans Classroom
+      capacity: classroom.capacity || 0,
+      equipment: classroom.equipment || [],
+      status: classroom.status || 'active',
+      description: classroom.description || '',
+      lat: classroom.lat ? (typeof classroom.lat === 'string' ? parseFloat(classroom.lat) : classroom.lat) : undefined,
+      lng: classroom.lng ? (typeof classroom.lng === 'string' ? parseFloat(classroom.lng) : classroom.lng) : undefined,
+      address: '',
+      mainImage: classroom.main_image,
+      annexes: classroom.annexes
+    };
+    setSelectedClassroom(amphitheaterData);
+    setModalMode('edit');
+    setModalOpen(true);
   };
 
-  const handleDelete = async (classroom: Classroom) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer "${classroom.name}" ?`)) {
+  const handleDeleteClick = (classroom: Classroom) => {
+    setClassroomToDelete(classroom);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (classroomToDelete) {
       try {
         // TODO: Implémenter la suppression via API
-        toast.success(`${classroom.name} supprimé avec succès`);
+        toast.success(`${classroomToDelete.name} supprimé avec succès`);
+        setClassroomToDelete(null);
         fetchClassrooms(); // Recharger la liste
       } catch (error) {
         toast.error('Erreur lors de la suppression');
       }
+    }
+  };
+
+  const handleSave = async (amphitheaterData: any) => {
+    try {
+      // Pré-remplir l'université pour les nouveaux amphithéâtres
+      if (!amphitheaterData.id && universityId && university) {
+        amphitheaterData.universityId = universityId;
+        amphitheaterData.university = university.name;
+      }
+      
+      // TODO: Appeler l'API pour sauvegarder
+      // if (amphitheaterData.id) {
+      //   await apiService.updateAmphitheater(amphitheaterData.id, formData);
+      // } else {
+      //   await apiService.createAmphitheater(formData);
+      // }
+      
+      toast.success(amphitheaterData.id ? 'Amphithéâtre modifié avec succès' : 'Amphithéâtre créé avec succès');
+      fetchClassrooms(); // Recharger la liste
+    } catch (error) {
+      toast.error('Erreur lors de la sauvegarde');
+      console.error('Save error:', error);
     }
   };
 
@@ -276,13 +362,17 @@ export const UniversityClassrooms = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleView(classroom)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir les détails
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(classroom)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Modifier
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          onClick={() => handleDelete(classroom)}
+                          onClick={() => handleDeleteClick(classroom)}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -341,6 +431,26 @@ export const UniversityClassrooms = () => {
           ))}
         </div>
       )}
+
+      {/* Modals */}
+      <AmphitheaterModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        amphitheater={selectedClassroom}
+        mode={modalMode}
+        onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={handleConfirmDelete}
+        title="Supprimer l'amphithéâtre"
+        description={`Êtes-vous sûr de vouloir supprimer "${classroomToDelete?.name}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="destructive"
+      />
     </div>
   );
 };

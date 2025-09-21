@@ -39,8 +39,8 @@ interface Amphitheater {
   status: 'active' | 'maintenance' | 'draft';
   description: string;
   // Coordonnées de localisation
-  latitude?: number;
-  longitude?: number;
+  lat?: number;
+  lng?: number;
   address?: string;
   // Images
   mainImage?: File | string;
@@ -83,8 +83,8 @@ export const AmphitheaterModal = ({
       equipment: [],
       status: 'draft',
       description: '',
-      latitude: undefined,
-      longitude: undefined,
+      lat: undefined,
+      lng: undefined,
       address: '',
       mainImage: undefined,
       annexes: []
@@ -95,6 +95,7 @@ export const AmphitheaterModal = ({
 
   useEffect(() => {
     if (amphitheater && open) {
+      console.log('Modal received amphitheater data:', amphitheater); // Debug
       form.reset(amphitheater);
     } else if (!amphitheater && open) {
       form.reset({
@@ -107,8 +108,8 @@ export const AmphitheaterModal = ({
         equipment: [],
         status: 'draft',
         description: '',
-        latitude: undefined,
-        longitude: undefined,
+        lat: undefined,
+        lng: undefined,
         address: '',
         mainImage: undefined,
         annexes: []
@@ -124,7 +125,19 @@ export const AmphitheaterModal = ({
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '') // Supprimer les tirets en début et fin
       .trim();
+  };
+
+  const validateSlug = (slug: string) => {
+    if (!slug) return 'Le slug est requis';
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      return 'Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets';
+    }
+    if (slug.startsWith('-') || slug.endsWith('-')) {
+      return 'Le slug ne peut pas commencer ou finir par un tiret';
+    }
+    return true;
   };
 
   const addEquipment = () => {
@@ -156,11 +169,11 @@ export const AmphitheaterModal = ({
       formData.append('slug', generateSlug(data.name));
       
       // Ajouter les coordonnées (lng/lat comme attendu par le backend)
-      if (data.longitude !== undefined) {
-        formData.append('lng', data.longitude.toString());
+      if (data.lng !== undefined) {
+        formData.append('lng', data.lng.toString());
       }
-      if (data.latitude !== undefined) {
-        formData.append('lat', data.latitude.toString());
+      if (data.lat !== undefined) {
+        formData.append('lat', data.lat.toString());
       }
 
       // Ajouter l'image principale si elle existe
@@ -231,10 +244,62 @@ export const AmphitheaterModal = ({
               <Label htmlFor="name">Nom de l'amphithéâtre</Label>
               <Input
                 id="name"
-                {...form.register('name', { required: !isReadOnly })}
+                {...form.register('name', { 
+                  required: !isReadOnly,
+                  onChange: (e) => {
+                    // Générer automatiquement le slug à partir du nom
+                    if (!isReadOnly) {
+                      const slug = generateSlug(e.target.value);
+                      form.setValue('slug', slug);
+                    }
+                  }
+                })}
                 placeholder="ex: Amphi Sciences 200"
                 disabled={isReadOnly}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="slug">Slug (URL)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="slug"
+                  {...form.register('slug', { 
+                    required: !isReadOnly ? 'Le slug est requis' : false,
+                    validate: !isReadOnly ? validateSlug : undefined
+                  })}
+                  placeholder="ex: amphi-sciences-200"
+                  disabled={isReadOnly}
+                  className="flex-1"
+                />
+                {!isReadOnly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const name = form.getValues('name');
+                      if (name) {
+                        const slug = generateSlug(name);
+                        form.setValue('slug', slug);
+                      }
+                    }}
+                    title="Régénérer le slug à partir du nom"
+                  >
+                    🔄
+                  </Button>
+                )}
+              </div>
+              {form.formState.errors.slug && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.slug.message}
+                </p>
+              )}
+              {!isReadOnly && (
+                <p className="text-xs text-muted-foreground">
+                  Le slug est généré automatiquement à partir du nom. Vous pouvez le modifier manuellement ou cliquer sur 🔄 pour le régénérer.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -363,13 +428,13 @@ export const AmphitheaterModal = ({
             <LocationSelector
               value={{
                 address: form.watch('address'),
-                latitude: form.watch('latitude'),
-                longitude: form.watch('longitude'),
+                lat: form.watch('lat'),
+                lng: form.watch('lng'),
               }}
               onChange={(location) => {
                 form.setValue('address', location.address || '');
-                form.setValue('latitude', location.latitude);
-                form.setValue('longitude', location.longitude);
+                form.setValue('lat', location.lat);
+                form.setValue('lng', location.lng);
                 // Mettre à jour le champ location avec l'adresse si disponible
                 if (location.address) {
                   form.setValue('location', location.address);

@@ -28,10 +28,8 @@ interface University {
   slug: string;
   description?: string;
   address?: string;
-  lng?: string | null;
-  lat?: string | null;
-  latitude?: number;
-  longitude?: number;
+  lng?: string | number | null;
+  lat?: string | number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -40,8 +38,8 @@ interface Classroom {
   id: string; // UUID
   name: string;
   slug: string;
-  lng?: string | number;
-  lat?: string | number;
+  lng?: string | number | null;
+  lat?: string | number | null;
   capacity?: number;
   equipment?: string[];
   status?: "active" | "maintenance" | "draft";
@@ -108,8 +106,8 @@ class ApiService {
         slug: uni.slug,
         description: uni.description,
         address: uni.address,
-        latitude: uni.lat ? parseFloat(uni.lat) : undefined,
-        longitude: uni.lng ? parseFloat(uni.lng) : undefined,
+        lat: uni.lat ? parseFloat(uni.lat) : undefined,
+        lng: uni.lng ? parseFloat(uni.lng) : undefined,
         created_at: uni.created_at,
         updated_at: uni.updated_at
       }));
