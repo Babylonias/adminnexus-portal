@@ -22,8 +22,8 @@ interface LocationSelectorProps {
   className?: string;
 }
 
-// Clé API Google Maps (à remplacer par une vraie clé)
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
+// Clé API Google Maps depuis les variables d'environnement
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 export const LocationSelector = ({ 
   value, 
@@ -201,10 +201,40 @@ export const LocationSelector = ({
       });
 
       // Mettre à jour la carte si elle est chargée
-      if (mapInstance.current && markerInstance.current) {
+      if (mapInstance.current) {
         const position = { lat, lng };
         mapInstance.current.setCenter(position);
-        markerInstance.current.setPosition(position);
+        
+        // Supprimer l'ancien marqueur s'il existe
+        if (markerInstance.current) {
+          markerInstance.current.setMap(null);
+        }
+        
+        // Créer un nouveau marqueur
+        markerInstance.current = new google.maps.Marker({
+          position: position,
+          map: mapInstance.current,
+          draggable: !disabled,
+        });
+
+        // Ajouter l'événement de drag si pas désactivé
+        if (!disabled) {
+          markerInstance.current.addListener('dragend', (dragEvent: google.maps.MapMouseEvent) => {
+            if (dragEvent.latLng) {
+              const newLat = dragEvent.latLng.lat();
+              const newLng = dragEvent.latLng.lng();
+              
+              setLatitude(newLat.toString());
+              setLongitude(newLng.toString());
+              
+              onChange({
+                address: address || value?.address,
+                latitude: newLat,
+                longitude: newLng,
+              });
+            }
+          });
+        }
       }
     }
   };
@@ -249,7 +279,7 @@ export const LocationSelector = ({
   };
 
   // Interface pour la clé API si elle n'est pas configurée
-  if (GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY' && !useApiKey) {
+  if (!GOOGLE_MAPS_API_KEY && !useApiKey && activeTab !== 'coordinates') {
     return (
       <div className={cn("space-y-4 p-4 border rounded-lg bg-muted/50", className)}>
         <div className="text-center space-y-3">
@@ -289,21 +319,139 @@ export const LocationSelector = ({
     );
   }
 
+  // Interface pour les coordonnées manuelles uniquement
+  if (activeTab === 'coordinates' && !GOOGLE_MAPS_API_KEY && !useApiKey) {
+    return (
+      <div className={cn("space-y-4", className)}>
+        <div className="flex items-center justify-between">
+          <Label>Localisation (Coordonnées manuelles)</Label>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setActiveTab('map')}
+            className="text-xs"
+          >
+            Retour à la carte
+          </Button>
+        </div>
+        
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input
+                id="latitude"
+                placeholder="ex: 48.8566"
+                value={latitude}
+                onChange={(e) => {
+                  setLatitude(e.target.value);
+                  // Mettre à jour immédiatement si c'est un nombre valide
+                  const lat = parseFloat(e.target.value);
+                  const lng = parseFloat(longitude);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    onChange({
+                      address: address || value?.address,
+                      latitude: lat,
+                      longitude: lng,
+                    });
+                  }
+                }}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input
+                id="longitude"
+                placeholder="ex: 2.3522"
+                value={longitude}
+                onChange={(e) => {
+                  setLongitude(e.target.value);
+                  // Mettre à jour immédiatement si c'est un nombre valide
+                  const lat = parseFloat(latitude);
+                  const lng = parseFloat(e.target.value);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    onChange({
+                      address: address || value?.address,
+                      latitude: lat,
+                      longitude: lng,
+                    });
+                  }
+                }}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+          
+          {!disabled && (
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={getCurrentLocation}
+              className="w-full"
+            >
+              <Navigation className="h-4 w-4 mr-2" />
+              Utiliser ma position actuelle
+            </Button>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Adresse (optionnelle)</Label>
+            <Input
+              id="address"
+              placeholder="ex: Paris, France"
+              value={address}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                onChange({
+                  address: e.target.value,
+                  latitude: parseFloat(latitude) || value?.latitude,
+                  longitude: parseFloat(longitude) || value?.longitude,
+                });
+              }}
+              disabled={disabled}
+            />
+          </div>
+
+          {(latitude && longitude) && (
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <p><strong>Coordonnées:</strong> {latitude}, {longitude}</p>
+              {address && <p><strong>Adresse:</strong> {address}</p>}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("space-y-4", className)}>
-      <Label>Localisation</Label>
+      <div className="flex items-center justify-between">
+        <Label>Localisation</Label>
+        {(GOOGLE_MAPS_API_KEY || useApiKey) && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setActiveTab(activeTab === 'coordinates' ? 'map' : 'coordinates')}
+            className="text-xs"
+          >
+            {activeTab === 'coordinates' ? 'Utiliser la carte' : 'Coordonnées manuelles'}
+          </Button>
+        )}
+      </div>
       
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'map' | 'coordinates')}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="map" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Carte
-          </TabsTrigger>
-          <TabsTrigger value="coordinates" className="flex items-center gap-2">
-            <Navigation className="h-4 w-4" />
-            Coordonnées
-          </TabsTrigger>
-        </TabsList>
+      {(GOOGLE_MAPS_API_KEY || useApiKey) ? (
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'map' | 'coordinates')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="map" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Carte
+            </TabsTrigger>
+            <TabsTrigger value="coordinates" className="flex items-center gap-2">
+              <Navigation className="h-4 w-4" />
+              Coordonnées
+            </TabsTrigger>
+          </TabsList>
 
         <TabsContent value="map" className="space-y-3">
           <div 
@@ -323,29 +471,66 @@ export const LocationSelector = ({
         </TabsContent>
 
         <TabsContent value="coordinates" className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="latitude">Latitude</Label>
-              <Input
-                id="latitude"
-                placeholder="ex: 48.8566"
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                onBlur={handleCoordinateChange}
-                disabled={disabled}
-              />
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="latitude">Latitude</Label>
+                <Input
+                  id="latitude"
+                  placeholder="ex: 48.8566"
+                  value={latitude}
+                  onChange={(e) => {
+                    setLatitude(e.target.value);
+                    // Mettre à jour immédiatement si c'est un nombre valide
+                    const lat = parseFloat(e.target.value);
+                    const lng = parseFloat(longitude);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                      onChange({
+                        address: address || value?.address,
+                        latitude: lat,
+                        longitude: lng,
+                      });
+                    }
+                  }}
+                  disabled={disabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="longitude">Longitude</Label>
+                <Input
+                  id="longitude"
+                  placeholder="ex: 2.3522"
+                  value={longitude}
+                  onChange={(e) => {
+                    setLongitude(e.target.value);
+                    // Mettre à jour immédiatement si c'est un nombre valide
+                    const lat = parseFloat(latitude);
+                    const lng = parseFloat(e.target.value);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                      onChange({
+                        address: address || value?.address,
+                        latitude: lat,
+                        longitude: lng,
+                      });
+                    }
+                  }}
+                  disabled={disabled}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="longitude">Longitude</Label>
-              <Input
-                id="longitude"
-                placeholder="ex: 2.3522"
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                onBlur={handleCoordinateChange}
-                disabled={disabled}
-              />
-            </div>
+            
+            {!disabled && (latitude || longitude) && (
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={handleCoordinateChange}
+                className="w-full"
+                disabled={isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude))}
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Mettre à jour la position sur la carte
+              </Button>
+            )}
           </div>
           
           {!disabled && (
@@ -380,7 +565,93 @@ export const LocationSelector = ({
             </div>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      ) : (
+        // Interface simplifiée pour coordonnées seulement (quand pas de Google Maps)
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input
+                id="latitude"
+                placeholder="ex: 48.8566"
+                value={latitude}
+                onChange={(e) => {
+                  setLatitude(e.target.value);
+                  const lat = parseFloat(e.target.value);
+                  const lng = parseFloat(longitude);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    onChange({
+                      address: address || value?.address,
+                      latitude: lat,
+                      longitude: lng,
+                    });
+                  }
+                }}
+                disabled={disabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input
+                id="longitude"
+                placeholder="ex: 2.3522"
+                value={longitude}
+                onChange={(e) => {
+                  setLongitude(e.target.value);
+                  const lat = parseFloat(latitude);
+                  const lng = parseFloat(e.target.value);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    onChange({
+                      address: address || value?.address,
+                      latitude: lat,
+                      longitude: lng,
+                    });
+                  }
+                }}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+          
+          {!disabled && (
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={getCurrentLocation}
+              className="w-full"
+            >
+              <Navigation className="h-4 w-4 mr-2" />
+              Utiliser ma position actuelle
+            </Button>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Adresse (optionnelle)</Label>
+            <Input
+              id="address"
+              placeholder="ex: Paris, France"
+              value={address}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                onChange({
+                  address: e.target.value,
+                  latitude: parseFloat(latitude) || value?.latitude,
+                  longitude: parseFloat(longitude) || value?.longitude,
+                });
+              }}
+              disabled={disabled}
+            />
+          </div>
+
+          {(latitude && longitude) && (
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <p><strong>Coordonnées:</strong> {latitude}, {longitude}</p>
+              {address && <p><strong>Adresse:</strong> {address}</p>}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
