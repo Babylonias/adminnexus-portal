@@ -283,7 +283,7 @@ export const Amphitheaters = () => {
                   <p className="text-xs font-medium text-muted-foreground mb-2">Équipements :</p>
                   <div className="flex flex-wrap gap-1">
                     {amphitheater.equipment.slice(0, 2).map((item, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
+                      <Badge key={`${amphitheater.id}-equipment-${index}-${item}`} variant="outline" className="text-xs">
                         {item}
                       </Badge>
                     ))}

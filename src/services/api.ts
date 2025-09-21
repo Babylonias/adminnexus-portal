@@ -57,12 +57,17 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    const defaultHeaders = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+    // Ne pas ajouter Content-Type pour FormData
+    const defaultHeaders: Record<string, string> = {};
+    if (!(options.body instanceof FormData)) {
+      defaultHeaders['Content-Type'] = 'application/json';
+    }
+    defaultHeaders['Accept'] = 'application/json';
 
     try {
+      console.log('Making request to:', url); // Debug
+      console.log('Request method:', options.method || 'GET'); // Debug
+      
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -71,8 +76,12 @@ class ApiService {
         },
       });
 
+      console.log('Response status:', response.status); // Debug
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Response error:', errorText); // Debug
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
@@ -153,11 +162,20 @@ class ApiService {
   // Mettre à jour un amphithéâtre
   async updateAmphitheater(id: string, data: FormData): Promise<any> {
     try {
+      // Laravel nécessite souvent _method=PUT pour les FormData
+      data.append('_method', 'PUT');
+      
+      console.log('Updating amphitheater with ID:', id); // Debug
+      console.log('FormData for update:');
+      for (let [key, value] of data.entries()) {
+        console.log(key, value);
+      }
+      
       const response = await this.request(`/api/classrooms/${id}`, {
-        method: 'PUT',
+        method: 'POST', // Utiliser POST avec _method=PUT pour FormData
         body: data,
         headers: {
-          // Ne pas définir Content-Type pour FormData
+          // Ne pas définir Content-Type pour FormData, le navigateur le fera automatiquement
         },
       });
       return response;

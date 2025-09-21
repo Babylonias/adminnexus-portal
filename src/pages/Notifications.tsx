@@ -139,7 +139,7 @@ export const Notifications = () => {
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card key="notif-stats-total">
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
@@ -151,7 +151,7 @@ export const Notifications = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card key="notif-stats-unread">
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-destructive" />
@@ -163,7 +163,7 @@ export const Notifications = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card key="notif-stats-read">
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-success" />
@@ -175,7 +175,7 @@ export const Notifications = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card key="notif-stats-filtered">
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5 text-muted-foreground" />

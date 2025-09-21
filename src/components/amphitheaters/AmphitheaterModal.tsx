@@ -68,7 +68,7 @@ export const AmphitheaterModal = ({
   const isEdit = mode === 'edit';
   const [newEquipment, setNewEquipment] = useState("");
   const { universities, loading: universitiesLoading, error: universitiesError } = useUniversities();
-  
+
   // Debug
   console.log('Universities in modal:', universities, 'Loading:', universitiesLoading, 'Error:', universitiesError);
 
@@ -117,26 +117,19 @@ export const AmphitheaterModal = ({
     }
   }, [amphitheater, open, form]);
 
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '') // Supprimer les tirets en début et fin
-      .trim();
-  };
+  // const generateSlug = (name: string) => {
+  //   return name
+  //     .toLowerCase()
+  //     .normalize('NFD')
+  //     .replace(/[\u0300-\u036f]/g, '')
+  //     .replace(/[^a-z0-9\s-]/g, '')
+  //     .replace(/\s+/g, '-')
+  //     .replace(/-+/g, '-')
+  //     .replace(/^-+|-+$/g, '') // Supprimer les tirets en début et fin
+  //     .trim();
+  // };
 
   const validateSlug = (slug: string) => {
-    if (!slug) return 'Le slug est requis';
-    if (!/^[a-z0-9-]+$/.test(slug)) {
-      return 'Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets';
-    }
-    if (slug.startsWith('-') || slug.endsWith('-')) {
-      return 'Le slug ne peut pas commencer ou finir par un tiret';
-    }
     return true;
   };
 
@@ -163,17 +156,47 @@ export const AmphitheaterModal = ({
 
   const onSubmit = async (data: Amphitheater) => {
     try {
+      console.log('Form data received:', data); // Debug
+
       // Préparer les données pour l'API backend
       const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('slug', generateSlug(data.name));
-      
+
+      // Champs obligatoires
+      formData.append('name', data.name || '');
+      formData.append('slug', data.slug || '');
+
       // Ajouter les coordonnées (lng/lat comme attendu par le backend)
-      if (data.lng !== undefined) {
+      if (data.lng !== undefined && data.lng !== null) {
         formData.append('lng', data.lng.toString());
       }
-      if (data.lat !== undefined) {
+      if (data.lat !== undefined && data.lat !== null) {
         formData.append('lat', data.lat.toString());
+      }
+
+      // Ajouter l'université
+      if (data.universityId) {
+        formData.append('university_id', data.universityId);
+      }
+
+      // Ajouter les autres champs optionnels
+      if (data.description) {
+        formData.append('description', data.description);
+      }
+      if (data.capacity) {
+        formData.append('capacity', data.capacity.toString());
+      }
+      if (data.status) {
+        formData.append('status', data.status);
+      }
+      if (data.location) {
+        formData.append('location', data.location);
+      }
+
+      // Ajouter les équipements
+      if (data.equipment && data.equipment.length > 0) {
+        data.equipment.forEach((item, index) => {
+          formData.append(`equipment[${index}]`, item);
+        });
       }
 
       // Ajouter l'image principale si elle existe
@@ -190,6 +213,11 @@ export const AmphitheaterModal = ({
         });
       }
 
+      // Debug: Afficher le contenu du FormData
+      console.log('FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
       let result;
       if (isEdit && amphitheater?.id) {
         result = await apiService.updateAmphitheater(amphitheater.id, formData);
@@ -201,10 +229,10 @@ export const AmphitheaterModal = ({
       // jusqu'à ce que la liste soit aussi connectée au backend
       const amphitheaterData = {
         ...data,
-        slug: generateSlug(data.name),
+        slug: data.slug,
         id: amphitheater?.id || result?.data?.id
       };
-      
+
       onSave(amphitheaterData);
       onOpenChange(false);
       toast.success(isEdit ? 'Amphithéâtre modifié avec succès' : 'Amphithéâtre créé avec succès');
@@ -244,15 +272,8 @@ export const AmphitheaterModal = ({
               <Label htmlFor="name">Nom de l'amphithéâtre</Label>
               <Input
                 id="name"
-                {...form.register('name', { 
+                {...form.register('name', {
                   required: !isReadOnly,
-                  onChange: (e) => {
-                    // Générer automatiquement le slug à partir du nom
-                    if (!isReadOnly) {
-                      const slug = generateSlug(e.target.value);
-                      form.setValue('slug', slug);
-                    }
-                  }
                 })}
                 placeholder="ex: Amphi Sciences 200"
                 disabled={isReadOnly}
@@ -260,11 +281,11 @@ export const AmphitheaterModal = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug (URL)</Label>
+              <Label htmlFor="slug">Slug</Label>
               <div className="flex gap-2">
                 <Input
                   id="slug"
-                  {...form.register('slug', { 
+                  {...form.register('slug', {
                     required: !isReadOnly ? 'Le slug est requis' : false,
                     validate: !isReadOnly ? validateSlug : undefined
                   })}
@@ -272,23 +293,6 @@ export const AmphitheaterModal = ({
                   disabled={isReadOnly}
                   className="flex-1"
                 />
-                {!isReadOnly && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      const name = form.getValues('name');
-                      if (name) {
-                        const slug = generateSlug(name);
-                        form.setValue('slug', slug);
-                      }
-                    }}
-                    title="Régénérer le slug à partir du nom"
-                  >
-                    🔄
-                  </Button>
-                )}
               </div>
               {form.formState.errors.slug && (
                 <p className="text-xs text-destructive">
@@ -310,14 +314,14 @@ export const AmphitheaterModal = ({
                 disabled={isReadOnly || universitiesLoading}
               >
                 <SelectTrigger>
-                  <SelectValue 
+                  <SelectValue
                     placeholder={
-                      universitiesLoading 
-                        ? "Chargement des universités..." 
-                        : universitiesError 
-                          ? "Erreur de chargement" 
+                      universitiesLoading
+                        ? "Chargement des universités..."
+                        : universitiesError
+                          ? "Erreur de chargement"
                           : "Sélectionnez une université"
-                    } 
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -339,7 +343,7 @@ export const AmphitheaterModal = ({
               <Label htmlFor="location">Localisation</Label>
               <Input
                 id="location"
-                {...form.register('location', { required: !isReadOnly })}
+                {...form.register('location', { required: false })}
                 placeholder="ex: Bâtiment A, 2ème étage"
                 disabled={isReadOnly}
               />
@@ -351,7 +355,7 @@ export const AmphitheaterModal = ({
                 id="capacity"
                 type="number"
                 {...form.register('capacity', {
-                  required: !isReadOnly,
+                  required: false,
                   valueAsNumber: true,
                   min: 1
                 })}
@@ -412,7 +416,7 @@ export const AmphitheaterModal = ({
               )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {watchedEquipment.map((item, index) => (
-                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                  <Badge key={`equipment-${index}-${item}`} variant="secondary" className="flex items-center gap-1">
                     {item}
                     {!isReadOnly && (
                       <X

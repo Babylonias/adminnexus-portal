@@ -258,7 +258,7 @@ export const UniversityClassrooms = () => {
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card key="stats-total">
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
@@ -270,7 +270,7 @@ export const UniversityClassrooms = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card key="stats-capacity">
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-success" />
@@ -284,7 +284,7 @@ export const UniversityClassrooms = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card key="stats-active">
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <Badge variant="default" className="h-5 w-5 rounded-full p-0" />
@@ -298,7 +298,7 @@ export const UniversityClassrooms = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card key="stats-maintenance">
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <Badge variant="destructive" className="h-5 w-5 rounded-full p-0" />
@@ -413,7 +413,7 @@ export const UniversityClassrooms = () => {
                       <p className="text-xs font-medium text-muted-foreground mb-2">Équipements :</p>
                       <div className="flex flex-wrap gap-1">
                         {classroom.equipment.slice(0, 2).map((item, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                          <Badge key={`${classroom.id}-equipment-${index}-${item}`} variant="outline" className="text-xs">
                             {item}
                           </Badge>
                         ))}
