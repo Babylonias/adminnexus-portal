@@ -6,11 +6,10 @@ WORKDIR /app
 # Installer pnpm globalement
 RUN npm install -g pnpm
 
-# Copier les fichiers de package
-COPY package*.json ./
-COPY pnpm-lock.yaml* ./
+# Copier tout le projet d'abord
+COPY . .
 
-# Installer les dépendances
+# Installer les dépendances (cela va utiliser le pnpm-lock.yaml existant)
 RUN pnpm install
 
 # Exposer le port de développement

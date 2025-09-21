@@ -8,13 +8,21 @@ services:
     ports:
       - "55555:55555"
     volumes:
-      # Monter le code source pour le hot reload
-      - .:/app
-      # Exclure node_modules pour éviter les conflits
-      - /app/node_modules
+      # Monter seulement le code source, pas node_modules
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.app.json:/app/tsconfig.app.json
+      - ./tsconfig.node.json:/app/tsconfig.node.json
+      - ./tailwind.config.ts:/app/tailwind.config.ts
+      - ./postcss.config.js:/app/postcss.config.js
+      - ./components.json:/app/components.json
+    env_file:
+      - .env
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:3001
     restart: unless-stopped
     networks:
       - campuswa-dev-network
