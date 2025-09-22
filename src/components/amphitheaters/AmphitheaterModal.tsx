@@ -220,8 +220,10 @@ export const AmphitheaterModal = ({
       }
       let result;
       if (isEdit && amphitheater?.id) {
+        console.log('Updating amphitheater with ID:', amphitheater.id); // Debug
         result = await apiService.updateAmphitheater(amphitheater.id, formData);
       } else {
+        console.log('Creating new amphitheater'); // Debug
         result = await apiService.createAmphitheater(formData);
       }
 

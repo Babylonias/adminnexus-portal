@@ -15,6 +15,7 @@ import { apiService, type Classroom } from "@/services/api";
 import { useUniversities } from "@/hooks/use-universities";
 import { AmphitheaterModal } from "@/components/amphitheaters/AmphitheaterModal";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ImageWithFallback } from "@/components/shared/ImageWithFallback";
 import { toast } from "sonner";
 
 // Interface Classroom importée du service API
@@ -137,9 +138,11 @@ export const UniversityClassrooms = () => {
   };
 
   const handleEdit = (classroom: Classroom) => {
+    console.log('Editing classroom:', classroom); // Debug
+    
     // Convertir Classroom en format Amphitheater pour le modal
     const amphitheaterData = {
-      id: classroom.id,
+      id: classroom.id, // ID du backend (UUID)
       name: classroom.name,
       slug: classroom.slug,
       university: university?.name || '',
@@ -155,6 +158,8 @@ export const UniversityClassrooms = () => {
       mainImage: classroom.main_image,
       annexes: classroom.annexes
     };
+    
+    console.log('Amphitheater data for modal:', amphitheaterData); // Debug
     setSelectedClassroom(amphitheaterData);
     setModalMode('edit');
     setModalOpen(true);
@@ -199,6 +204,10 @@ export const UniversityClassrooms = () => {
       toast.error('Erreur lors de la sauvegarde');
       console.error('Save error:', error);
     }
+  };
+
+  const getClassroomImage = (classroom: Classroom) => {
+    return classroom.main_image;
   };
 
   if (loading) {
@@ -330,15 +339,11 @@ export const UniversityClassrooms = () => {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {classrooms.map((classroom) => (
             <Card key={classroom.id} className="group hover:shadow-elegant transition-all duration-300 shadow-card">
-              {classroom.main_image && (
-                <div className="aspect-video overflow-hidden rounded-t-lg">
-                  <img
-                    src={classroom.main_image}
-                    alt={classroom.name}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  />
-                </div>
-              )}
+              <ImageWithFallback
+                src={getClassroomImage(classroom)}
+                alt={classroom.name}
+                annexesCount={classroom.annexes?.length || 0}
+              />
               
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">

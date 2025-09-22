@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { AmphitheaterModal } from "@/components/amphitheaters/AmphitheaterModal";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ImageWithFallback } from "@/components/shared/ImageWithFallback";
 import { useUniversities } from "@/hooks/use-universities";
 
 interface Amphitheater {
@@ -152,6 +153,10 @@ export const Amphitheaters = () => {
     }
   };
 
+  const getAmphitheaterImage = (amphitheater: Amphitheater) => {
+    return amphitheater.mainImage || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=600&fit=crop';
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -220,6 +225,11 @@ export const Amphitheaters = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredAmphitheaters.map((amphitheater) => (
           <Card key={amphitheater.id} className="group hover:shadow-elegant transition-all duration-300 shadow-card">
+            <ImageWithFallback
+              src={getAmphitheaterImage(amphitheater)}
+              alt={amphitheater.name}
+              annexesCount={amphitheater.annexes?.length || 0}
+            />
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1">

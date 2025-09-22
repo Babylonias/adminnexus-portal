@@ -67,7 +67,7 @@ class ApiService {
     try {
       console.log('Making request to:', url); // Debug
       console.log('Request method:', options.method || 'GET'); // Debug
-      
+
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -90,7 +90,8 @@ class ApiService {
       // Adapter la réponse au format attendu
       return {
         data: data,
-        success: true
+        success: true,
+        status: response.status,
       };
     } catch (error) {
       console.error('API request failed:', error);
@@ -108,9 +109,9 @@ class ApiService {
 
       console.log('Raw universities data:', universitiesData); // Debug
 
-      // Traiter les données - utiliser l'ID de la base ou générer un UUID temporaire
+      // Traiter les données - utiliser l'ID de la base
       return universitiesData.map((uni: any) => ({
-        id: uni.id || generateTempUUID(), // Utiliser l'UUID de la base ou générer un temporaire
+        id: uni.id, // Utiliser l'UUID de la base
         name: uni.name,
         slug: uni.slug,
         description: uni.description,
@@ -122,12 +123,9 @@ class ApiService {
       }));
     } catch (error) {
       console.error('Failed to fetch universities:', error);
-      // Retourner des données de fallback en cas d'erreur
-      return [
-        { id: "01234567-89ab-cdef-0123-456789abcdef", name: "Université Paris Tech", slug: "universite-paris-tech" },
-        { id: "11234567-89ab-cdef-0123-456789abcdef", name: "Sorbonne Université", slug: "sorbonne-universite" },
-        { id: "21234567-89ab-cdef-0123-456789abcdef", name: "Université Lyon 1", slug: "universite-lyon-1" }
-      ];
+      // Retourner des données de fallback en cas d'erreur (ne devrait pas arriver en production)
+      console.error('Failed to fetch universities, using fallback data');
+      return [];
     }
   }
 
@@ -162,15 +160,23 @@ class ApiService {
   // Mettre à jour un amphithéâtre
   async updateAmphitheater(id: string, data: FormData): Promise<any> {
     try {
+      if (!id) {
+        throw new Error('ID is required for updating amphitheater');
+      }
+
+      if (!isValidUUID(id)) {
+        console.warn('Invalid UUID format for amphitheater ID:', id);
+      }
+
       // Laravel nécessite souvent _method=PUT pour les FormData
       data.append('_method', 'PUT');
-      
+
       console.log('Updating amphitheater with ID:', id); // Debug
       console.log('FormData for update:');
       for (let [key, value] of data.entries()) {
         console.log(key, value);
       }
-      
+
       const response = await this.request(`/api/classrooms/${id}`, {
         method: 'POST', // Utiliser POST avec _method=PUT pour FormData
         body: data,
@@ -200,21 +206,34 @@ class ApiService {
       }
 
       // Normaliser les données
-      return classrooms.map((classroom: any) => ({
-        id: classroom.id,
-        name: classroom.name,
-        slug: classroom.slug,
-        lng: classroom.lng,
-        lat: classroom.lat,
-        capacity: classroom.capacity ? parseInt(classroom.capacity) : 0,
-        equipment: classroom.equipment || [],
-        status: classroom.status || 'active',
-        description: classroom.description,
-        created_at: classroom.created_at,
-        updated_at: classroom.updated_at,
-        main_image: classroom.main_image,
-        annexes: classroom.annexes || []
-      }));
+      return classrooms.map((classroom: any, index: number) => {
+        console.log(`Classroom ${index}:`, classroom); // Debug pour voir la structure
+
+        if (!classroom.id) {
+          console.error('Classroom without ID found at index', index, ':', classroom);
+          throw new Error(`Classroom at index ${index} is missing required ID field`);
+        }
+
+        if (!isValidUUID(classroom.id)) {
+          console.warn('Invalid UUID format for classroom ID:', classroom.id);
+        }
+
+        return {
+          id: classroom.id, // ID du backend (UUID) - OBLIGATOIRE
+          name: classroom.name || '',
+          slug: classroom.slug || '',
+          lng: classroom.lng,
+          lat: classroom.lat,
+          capacity: classroom.capacity ? parseInt(classroom.capacity) : 0,
+          equipment: classroom.equipment || [],
+          status: classroom.status || 'active',
+          description: classroom.description || '',
+          created_at: classroom.created_at,
+          updated_at: classroom.updated_at,
+          main_image: classroom.main_image,
+          annexes: classroom.annexes || []
+        };
+      });
     } catch (error) {
       console.error('Failed to fetch university classrooms:', error);
       return [];
