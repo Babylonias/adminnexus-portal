@@ -31,10 +31,10 @@ interface LocationSelectorProps {
 }
 
 // Composant pour gérer les clics sur la carte
-const MapClickHandler = ({ 
-  onLocationSelect, 
-  disabled 
-}: { 
+const MapClickHandler = ({
+  onLocationSelect,
+  disabled
+}: {
   onLocationSelect: (lat: number, lng: number) => void;
   disabled: boolean;
 }) => {
@@ -68,7 +68,7 @@ export const LocationSelector = ({
       setAddress(value.address || '');
       setLat(value.lat?.toString() || '');
       setLng(value.lng?.toString() || '');
-      
+
       if (value.lat && value.lng) {
         setMarkerPosition([value.lat, value.lng]);
       }
@@ -87,7 +87,7 @@ export const LocationSelector = ({
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
       );
       const data = await response.json();
-      
+
       if (data.display_name) {
         const newAddress = data.display_name;
         setAddress(newAddress);
@@ -192,7 +192,7 @@ export const LocationSelector = ({
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               {markerPosition && (
-                <Marker 
+                <Marker
                   position={markerPosition}
                   draggable={!disabled}
                   eventHandlers={{
@@ -204,7 +204,7 @@ export const LocationSelector = ({
                   }}
                 />
               )}
-              <MapClickHandler 
+              <MapClickHandler
                 onLocationSelect={handleLocationSelect}
                 disabled={disabled}
               />
