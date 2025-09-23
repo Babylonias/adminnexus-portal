@@ -359,11 +359,11 @@ export const AmphitheaterModal = ({
                 {...form.register('capacity', {
                   required: false,
                   valueAsNumber: true,
-                  min: 1
+                  min: 0
                 })}
                 placeholder="ex: 200"
                 disabled={isReadOnly}
-                min="1"
+                min="0"
               />
             </div>
 
