@@ -18,7 +18,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'default' | 'destructive';
+  variant?: "default" | "destructive";
 }
 
 export const ConfirmDialog = ({
@@ -27,21 +27,25 @@ export const ConfirmDialog = ({
   onConfirm,
   title,
   description,
-  confirmText = 'Confirmer',
-  cancelText = 'Annuler',
-  variant = 'default'
+  confirmText = "Confirmer",
+  cancelText = "Annuler",
+  variant = "default",
 }: ConfirmDialogProps) => {
   const handleConfirm = () => {
+    console.log("🔥 ConfirmDialog: handleConfirm triggered!");
+    console.log("🔥 ConfirmDialog: Calling onConfirm...");
     onConfirm();
-    onOpenChange(false);
+    console.log("🔥 ConfirmDialog: onConfirm completed");
   };
+
+  console.log("🔥 ConfirmDialog: Rendering with open =", open);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <div className="flex items-center gap-3">
-            {variant === 'destructive' ? (
+            {variant === "destructive" ? (
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
@@ -63,12 +67,12 @@ export const ConfirmDialog = ({
           <AlertDialogAction
             onClick={handleConfirm}
             className={
-              variant === 'destructive'
-                ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
-                : 'bg-primary hover:bg-primary/90'
+              variant === "destructive"
+                ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                : "bg-primary hover:bg-primary/90"
             }
           >
-            {variant === 'destructive' && <Trash2 className="h-4 w-4 mr-2" />}
+            {variant === "destructive" && <Trash2 className="h-4 w-4 mr-2" />}
             {confirmText}
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -27,65 +27,65 @@ import { useUniversities } from "@/hooks/use-universities";
 import type { Classroom } from "@/services/api";
 import { toast } from "sonner";
 
-interface AmphitheaterModalProps {
+interface ClassroomModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  amphitheater?: Classroom;
-  mode: 'create' | 'edit' | 'view';
+  classroom?: Classroom;
+  mode: "create" | "edit" | "view";
   onSave: (formData: FormData) => void;
 }
 
 // Les universités sont maintenant récupérées via le hook useUniversities
 
-export const AmphitheaterModal = ({
+export const ClassroomModal = ({
   open,
   onOpenChange,
-  amphitheater,
+  classroom,
   mode,
-  onSave
-}: AmphitheaterModalProps) => {
-  const isReadOnly = mode === 'view';
-  const isEdit = mode === 'edit';
+  onSave,
+}: ClassroomModalProps) => {
+  const isReadOnly = mode === "view";
+  const isEdit = mode === "edit";
   const [newEquipment, setNewEquipment] = useState("");
   // Supprimé: plus besoin des universités dans ce modal
   // const { universities, loading: universitiesLoading, error: universitiesError } = useUniversities();
 
   const form = useForm<Classroom>({
     defaultValues: {
-      name: '',
-      slug: '',
+      name: "",
+      slug: "",
       lng: undefined,
       lat: undefined,
       capacity: 0,
       equipment: [],
-      status: 'draft',
-      description: '',
+      status: "draft",
+      description: "",
       main_image: undefined,
-      annexes: []
-    }
+      annexes: [],
+    },
   });
 
-  const watchedEquipment = form.watch('equipment') || [];
+  const watchedEquipment = form.watch("equipment") || [];
 
   useEffect(() => {
-    if (amphitheater && open) {
-      console.log('Modal received amphitheater data:', amphitheater); // Debug
-      form.reset(amphitheater);
-    } else if (!amphitheater && open) {
+    if (classroom && open) {
+      console.log("Modal received classroom data:", classroom); // Debug
+      form.reset(classroom);
+    } else if (!classroom && open) {
       form.reset({
-        name: '',
-        slug: '',
+        name: "",
+        slug: "",
         lng: undefined,
         lat: undefined,
         capacity: 0,
         equipment: [],
-        status: 'draft',
-        description: '',
+        status: "draft",
+        description: "",
         main_image: undefined,
-        annexes: []
+        annexes: [],
       });
     }
-  }, [amphitheater, open, form]);
+  }, [classroom, open, form]);
 
   // const generateSlug = (name: string) => {
   //   return name
@@ -105,47 +105,48 @@ export const AmphitheaterModal = ({
 
   const addEquipment = () => {
     if (newEquipment.trim()) {
-      const currentEquipment = form.getValues('equipment') || [];
-      form.setValue('equipment', [...currentEquipment, newEquipment.trim()]);
+      const currentEquipment = form.getValues("equipment") || [];
+      form.setValue("equipment", [...currentEquipment, newEquipment.trim()]);
       setNewEquipment("");
     }
   };
 
   const removeEquipment = (index: number) => {
-    const currentEquipment = form.getValues('equipment') || [];
-    form.setValue('equipment', currentEquipment.filter((_, i) => i !== index));
+    const currentEquipment = form.getValues("equipment") || [];
+    form.setValue(
+      "equipment",
+      currentEquipment.filter((_, i) => i !== index),
+    );
   };
-
-
 
   const onSubmit = async (data: Classroom) => {
     try {
-      console.log('Form data received:', data); // Debug
+      console.log("Form data received:", data); // Debug
 
       // Préparer les données pour l'API backend
       const formData = new FormData();
 
       // Champs obligatoires
-      formData.append('name', data.name || '');
-      formData.append('slug', data.slug || '');
+      formData.append("name", data.name || "");
+      formData.append("slug", data.slug || "");
 
       // Ajouter les coordonnées (lng/lat comme attendu par le backend)
       if (data.lng !== undefined && data.lng !== null) {
-        formData.append('lng', data.lng.toString());
+        formData.append("lng", data.lng.toString());
       }
       if (data.lat !== undefined && data.lat !== null) {
-        formData.append('lat', data.lat.toString());
+        formData.append("lat", data.lat.toString());
       }
 
       // Ajouter les autres champs optionnels
       if (data.description) {
-        formData.append('description', data.description);
+        formData.append("description", data.description);
       }
       if (data.capacity) {
-        formData.append('capacity', data.capacity.toString());
+        formData.append("capacity", data.capacity.toString());
       }
       if (data.status) {
-        formData.append('status', data.status);
+        formData.append("status", data.status);
       }
 
       // Ajouter les équipements
@@ -157,7 +158,7 @@ export const AmphitheaterModal = ({
 
       // Ajouter l'image principale si elle existe
       if (data.main_image && data.main_image instanceof File) {
-        formData.append('main_image', data.main_image);
+        formData.append("main_image", data.main_image);
       }
 
       // Ajouter les images annexes si elles existent
@@ -170,7 +171,7 @@ export const AmphitheaterModal = ({
       }
 
       // Debug: Afficher le contenu du FormData
-      console.log('FormData contents:');
+      console.log("FormData contents:");
       for (let [key, value] of formData.entries()) {
         console.log(key, value);
       }
@@ -178,17 +179,21 @@ export const AmphitheaterModal = ({
       onSave(formData);
       onOpenChange(false);
     } catch (error) {
-      console.error('Error saving amphitheater:', error);
-      toast.error('Erreur lors de la sauvegarde de l\'amphithéâtre');
+      console.error("Error saving classroom:", error);
+      toast.error("Erreur lors de la sauvegarde de la salle de cours");
     }
   };
 
   const getTitle = () => {
     switch (mode) {
-      case 'create': return 'Nouvel Amphithéâtre';
-      case 'edit': return 'Modifier l\'Amphithéâtre';
-      case 'view': return 'Détails de l\'Amphithéâtre';
-      default: return '';
+      case "create":
+        return "Nouvel Amphithéâtre";
+      case "edit":
+        return "Modifier l'Amphithéâtre";
+      case "view":
+        return "Détails de l'Amphithéâtre";
+      default:
+        return "";
     }
   };
 
@@ -198,12 +203,11 @@ export const AmphitheaterModal = ({
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
-            {mode === 'view'
-              ? 'Consultez les informations de cet amphithéâtre'
+            {mode === "view"
+              ? "Consultez les informations de cet amphithéâtre"
               : isEdit
-                ? 'Modifiez les informations de cet amphithéâtre'
-                : 'Remplissez les informations pour créer un nouvel amphithéâtre'
-            }
+                ? "Modifiez les informations de cet amphithéâtre"
+                : "Remplissez les informations pour créer un nouvel amphithéâtre"}
           </DialogDescription>
         </DialogHeader>
 
@@ -213,8 +217,8 @@ export const AmphitheaterModal = ({
               <Label htmlFor="name">Nom de l'amphithéâtre *</Label>
               <Input
                 id="name"
-                {...form.register('name', {
-                  required: !isReadOnly ? 'Le nom est obligatoire' : false,
+                {...form.register("name", {
+                  required: !isReadOnly ? "Le nom est obligatoire" : false,
                 })}
                 placeholder="ex: Amphi Sciences 200"
                 disabled={isReadOnly}
@@ -231,9 +235,9 @@ export const AmphitheaterModal = ({
               <div className="flex gap-2">
                 <Input
                   id="slug"
-                  {...form.register('slug', {
-                    required: !isReadOnly ? 'Le slug est requis' : false,
-                    validate: !isReadOnly ? validateSlug : undefined
+                  {...form.register("slug", {
+                    required: !isReadOnly ? "Le slug est requis" : false,
+                    validate: !isReadOnly ? validateSlug : undefined,
                   })}
                   placeholder="ex: amphi-sciences-200"
                   disabled={isReadOnly}
@@ -247,24 +251,22 @@ export const AmphitheaterModal = ({
               )}
               {!isReadOnly && (
                 <p className="text-xs text-muted-foreground">
-                  Le slug est généré automatiquement à partir du nom. Vous pouvez le modifier manuellement ou cliquer sur 🔄 pour le régénérer.
+                  Le slug est généré automatiquement à partir du nom. Vous
+                  pouvez le modifier manuellement ou cliquer sur 🔄 pour le
+                  régénérer.
                 </p>
               )}
             </div>
-
-
-
-
 
             <div className="space-y-2">
               <Label htmlFor="capacity">Capacité</Label>
               <Input
                 id="capacity"
                 type="number"
-                {...form.register('capacity', {
+                {...form.register("capacity", {
                   required: false,
                   valueAsNumber: true,
-                  min: 0
+                  min: 0,
                 })}
                 placeholder="ex: 200"
                 disabled={isReadOnly}
@@ -276,8 +278,8 @@ export const AmphitheaterModal = ({
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                {...form.register('description')}
-                placeholder="Décrivez l'amphithéâtre..."
+                {...form.register("description")}
+                placeholder="Décrivez cette salle de cours..."
                 rows={3}
                 disabled={isReadOnly}
               />
@@ -286,8 +288,13 @@ export const AmphitheaterModal = ({
             <div className="space-y-2">
               <Label htmlFor="status">Statut</Label>
               <Select
-                value={form.watch('status')}
-                onValueChange={(value) => form.setValue('status', value as 'active' | 'maintenance' | 'draft')}
+                value={form.watch("status")}
+                onValueChange={(value) =>
+                  form.setValue(
+                    "status",
+                    value as "active" | "maintenance" | "draft",
+                  )
+                }
                 disabled={isReadOnly}
               >
                 <SelectTrigger>
@@ -310,20 +317,28 @@ export const AmphitheaterModal = ({
                     onChange={(e) => setNewEquipment(e.target.value)}
                     placeholder="Ajouter un équipement..."
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         e.preventDefault();
                         addEquipment();
                       }
                     }}
                   />
-                  <Button type="button" onClick={addEquipment} variant="outline">
+                  <Button
+                    type="button"
+                    onClick={addEquipment}
+                    variant="outline"
+                  >
                     Ajouter
                   </Button>
                 </div>
               )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {watchedEquipment.map((item, index) => (
-                  <Badge key={`equipment-${index}-${item}`} variant="secondary" className="flex items-center gap-1">
+                  <Badge
+                    key={`equipment-${index}-${item}`}
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
                     {item}
                     {!isReadOnly && (
                       <X
@@ -338,28 +353,28 @@ export const AmphitheaterModal = ({
 
             <LocationSelector
               value={{
-                lat: form.watch('lat'),
-                lng: form.watch('lng'),
+                lat: form.watch("lat"),
+                lng: form.watch("lng"),
               }}
               onChange={(location) => {
-                form.setValue('lat', location.lat);
-                form.setValue('lng', location.lng);
+                form.setValue("lat", location.lat);
+                form.setValue("lng", location.lng);
               }}
               disabled={isReadOnly}
             />
 
             <ImageUpload
               label="Image principale"
-              value={form.watch('main_image')}
-              onChange={(file) => form.setValue('main_image', file as File)}
+              value={form.watch("main_image")}
+              onChange={(file) => form.setValue("main_image", file as File)}
               disabled={isReadOnly}
               multiple={false}
             />
 
             <ImageUpload
               label="Images annexes"
-              value={form.watch('annexes')}
-              onChange={(files) => form.setValue('annexes', files as File[])}
+              value={form.watch("annexes")}
+              onChange={(files) => form.setValue("annexes", files as File[])}
               disabled={isReadOnly}
               multiple={true}
               maxFiles={5}
@@ -372,11 +387,14 @@ export const AmphitheaterModal = ({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              {isReadOnly ? 'Fermer' : 'Annuler'}
+              {isReadOnly ? "Fermer" : "Annuler"}
             </Button>
             {!isReadOnly && (
-              <Button type="submit" className="bg-gradient-primary hover:opacity-90">
-                {isEdit ? 'Enregistrer' : 'Créer'}
+              <Button
+                type="submit"
+                className="bg-gradient-primary hover:opacity-90"
+              >
+                {isEdit ? "Enregistrer" : "Créer"}
               </Button>
             )}
           </DialogFooter>
