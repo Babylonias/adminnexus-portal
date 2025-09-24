@@ -140,8 +140,57 @@ class ApiService {
     }
   }
 
+  // Récupérer tous les amphithéâtres
+  async getAmphitheaters(): Promise<Classroom[]> {
+    try {
+      const response = await this.request<any>('/api/classrooms');
+      console.log('Amphitheaters response:', response); // Debug
+
+      // Traiter les données selon la structure de votre API
+      let amphitheaters = response.data?.classrooms || response.data || [];
+
+      // Si c'est un objet avec une propriété classrooms
+      if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        amphitheaters = response.data.classrooms || [];
+      }
+
+      // Normaliser les données
+      return amphitheaters.map((amphitheater: any, index: number) => {
+        console.log(`Amphitheater ${index}:`, amphitheater); // Debug
+
+        if (!amphitheater.id) {
+          console.error('Amphitheater without ID found at index', index, ':', amphitheater);
+          throw new Error(`Amphitheater at index ${index} is missing required ID field`);
+        }
+
+        if (!isValidUUID(amphitheater.id)) {
+          console.warn('Invalid UUID format for amphitheater ID:', amphitheater.id);
+        }
+
+        return {
+          id: amphitheater.id,
+          name: amphitheater.name || '',
+          slug: amphitheater.slug || '',
+          lng: amphitheater.lng,
+          lat: amphitheater.lat,
+          capacity: amphitheater.capacity ? parseInt(amphitheater.capacity) : 0,
+          equipment: amphitheater.equipment || [],
+          status: amphitheater.status || 'active',
+          description: amphitheater.description || '',
+          created_at: amphitheater.created_at,
+          updated_at: amphitheater.updated_at,
+          main_image: amphitheater.main_image,
+          annexes: amphitheater.annexes || []
+        };
+      });
+    } catch (error) {
+      console.error('Failed to fetch amphitheaters:', error);
+      return [];
+    }
+  }
+
   // Créer un amphithéâtre
-  async creeateClassroom(data: FormData): Promise<any> {
+  async createAmphitheater(data: FormData): Promise<any> {
     try {
       const response = await this.request('/api/classrooms', {
         method: 'POST',
@@ -237,6 +286,45 @@ class ApiService {
     } catch (error) {
       console.error('Failed to fetch university classrooms:', error);
       return [];
+    }
+  }
+
+  // Supprimer un amphithéâtre
+  async deleteAmphitheater(id: string): Promise<void> {
+    try {
+      console.log('🌐 API: deleteAmphitheater called with ID:', id);
+      
+      if (!id) {
+        console.error('❌ API: No ID provided');
+        throw new Error('ID is required for deleting amphitheater');
+      }
+
+      if (!isValidUUID(id)) {
+        console.warn('⚠️ API: Invalid UUID format for amphitheater ID:', id);
+      }
+
+      const url = `/api/classrooms/${id}`;
+      console.log('🌐 API: Making DELETE request to:', url);
+
+      const response = await this.request(url, {
+        method: 'DELETE',
+      });
+      
+      console.log('✅ API: Delete request successful:', response);
+    } catch (error) {
+      console.error('❌ API: Failed to delete amphitheater:', error);
+      throw error;
+    }
+  }
+
+  // Récupérer un amphithéâtre par ID
+  async getAmphitheater(id: string): Promise<Classroom | null> {
+    try {
+      const response = await this.request<Classroom>(`/api/classrooms/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch amphitheater:', error);
+      return null;
     }
   }
 }

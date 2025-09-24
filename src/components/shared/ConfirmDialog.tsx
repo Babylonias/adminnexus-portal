@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AlertTriangle, Trash2 } from "lucide-react";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -37,17 +38,37 @@ export const ConfirmDialog = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <div className="flex items-center gap-3">
+            {variant === 'destructive' ? (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <AlertTriangle className="h-5 w-5 text-primary" />
+              </div>
+            )}
+            <AlertDialogTitle className="text-left">{title}</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="text-left mt-2">
+            {description}
+          </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{cancelText}</AlertDialogCancel>
+        <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+          <AlertDialogCancel className="mt-2 sm:mt-0">
+            {cancelText}
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            className={variant === 'destructive' ? 'bg-destructive hover:bg-destructive/90' : ''}
+            className={
+              variant === 'destructive'
+                ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
+                : 'bg-primary hover:bg-primary/90'
+            }
           >
+            {variant === 'destructive' && <Trash2 className="h-4 w-4 mr-2" />}
             {confirmText}
           </AlertDialogAction>
         </AlertDialogFooter>

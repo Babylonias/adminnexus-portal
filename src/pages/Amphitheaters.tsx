@@ -23,39 +23,29 @@ import { AmphitheaterModal } from "@/components/amphitheaters/AmphitheaterModal"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ImageWithFallback } from "@/components/shared/ImageWithFallback";
 import { useUniversities } from "@/hooks/use-universities";
-
-interface Amphitheater {
-  id: string; // UUID
-  name: string;
-  slug: string;
-  university: string;
-  universityId: string; // UUID
-  location: string;
-  capacity: number;
-  equipment: string[];
-  status: "active" | "maintenance" | "draft";
-  description: string;
-  createdAt: string;
-  // Coordonnées GPS
-  lat?: number;
-  lng?: number;
-  address?: string;
-  // Images
-  mainImage?: string;
-  annexes?: string[];
-}
-
-// Mock data - sera remplacé par les données du backend plus tard
-const initialAmphitheaters: Amphitheater[] = [];
+import { useAmphitheaters } from "@/hooks/use-amphitheaters";
+import type { Classroom } from "@/services/api";
 
 export const Amphitheaters = () => {
-  const [amphitheaters, setAmphitheaters] = useState<Amphitheater[]>(initialAmphitheaters);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [universityFilter, setUniversityFilter] = useState("all");
 
-  // Récupérer les universités du backend
+  // Récupérer les données du backend
   const { universities, loading: universitiesLoading } = useUniversities();
+  const {
+    amphitheaters,
+    loading: amphitheatersLoading,
+    error: amphitheatersError,
+    deleteAmphitheater,
+    createAmphitheater,
+    updateAmphitheater
+  } = useAmphitheaters();
+
+  // Debug: Log amphitheaters data
+  console.log('🏛️ Page: Amphitheaters data:', amphitheaters);
+  console.log('🏛️ Page: Loading:', amphitheatersLoading);
+  console.log('🏛️ Page: Error:', amphitheatersError);
 
   // Fonction utilitaire pour récupérer le nom de l'université
   const getUniversityName = (universityId: string) => {
@@ -66,20 +56,19 @@ export const Amphitheaters = () => {
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
-  const [selectedAmphitheater, setSelectedAmphitheater] = useState<Amphitheater | undefined>();
+  const [selectedAmphitheater, setSelectedAmphitheater] = useState<Classroom | undefined>();
 
   // Confirmation dialog states
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [amphitheaterToDelete, setAmphitheaterToDelete] = useState<Amphitheater | null>(null);
+  const [amphitheaterToDelete, setAmphitheaterToDelete] = useState<Classroom | null>(null);
 
   const filteredAmphitheaters = amphitheaters.filter(amphi => {
-    const universityName = getUniversityName(amphi.universityId);
     const matchesSearch = amphi.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      universityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      amphi.location.toLowerCase().includes(searchTerm.toLowerCase());
+      amphi.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || amphi.status === statusFilter;
-    const matchesUniversity = universityFilter === "all" || amphi.universityId === universityFilter;
-    return matchesSearch && matchesStatus && matchesUniversity;
+    // Note: Pour le filtre université, il faudra ajouter university_id dans l'API
+    // const matchesUniversity = universityFilter === "all" || amphi.university_id === universityFilter;
+    return matchesSearch && matchesStatus;
   });
 
   const handleCreateNew = () => {
@@ -88,50 +77,66 @@ export const Amphitheaters = () => {
     setModalOpen(true);
   };
 
-  const handleView = (amphitheater: Amphitheater) => {
+  const handleView = (amphitheater: Classroom) => {
     setSelectedAmphitheater(amphitheater);
     setModalMode('view');
     setModalOpen(true);
   };
 
-  const handleEdit = (amphitheater: Amphitheater) => {
+  const handleEdit = (amphitheater: Classroom) => {
     setSelectedAmphitheater(amphitheater);
     setModalMode('edit');
     setModalOpen(true);
   };
 
-  const handleDeleteClick = (amphitheater: Amphitheater) => {
+  const handleDeleteClick = (amphitheater: Classroom) => {
+    console.log('🎯 Page: handleDeleteClick called for:', amphitheater.name, 'ID:', amphitheater.id);
     setAmphitheaterToDelete(amphitheater);
     setConfirmOpen(true);
+    console.log('🎯 Page: Confirm dialog should now be open');
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
+    console.log('🎯 Page: handleConfirmDelete called');
+    console.log('🎯 Page: amphitheaterToDelete:', amphitheaterToDelete);
+
     if (amphitheaterToDelete) {
-      setAmphitheaters(prev => prev.filter(a => a.id !== amphitheaterToDelete.id));
-      toast.success(`${amphitheaterToDelete.name} supprimé avec succès`);
-      setAmphitheaterToDelete(null);
+      console.log('🎯 Page: Starting deletion for:', amphitheaterToDelete.name, 'ID:', amphitheaterToDelete.id);
+
+      const success = await deleteAmphitheater(amphitheaterToDelete.id);
+
+      console.log('🎯 Page: Delete result:', success);
+
+      if (success) {
+        console.log('🎯 Page: Cleaning up modal state...');
+        setAmphitheaterToDelete(null);
+        setConfirmOpen(false);
+        console.log('🎯 Page: Modal state cleaned up');
+      } else {
+        console.log('❌ Page: Delete failed, keeping modal open');
+      }
+    } else {
+      console.log('❌ Page: No amphitheater to delete');
     }
   };
 
-  const handleSave = (amphitheaterData: Omit<Amphitheater, 'createdAt'> & { id?: string }) => {
-    if (amphitheaterData.id) {
+  const handleSave = async (formData: FormData) => {
+    const amphitheaterId = selectedAmphitheater?.id;
+
+    if (amphitheaterId) {
       // Edit existing
-      setAmphitheaters(prev => prev.map(a =>
-        a.id === amphitheaterData.id
-          ? {
-            ...amphitheaterData,
-            createdAt: prev.find(p => p.id === amphitheaterData.id)?.createdAt || new Date().toISOString().split('T')[0]
-          } as Amphitheater
-          : a
-      ));
+      const result = await updateAmphitheater(amphitheaterId, formData);
+      if (result) {
+        setModalOpen(false);
+        setSelectedAmphitheater(undefined);
+      }
     } else {
       // Create new
-      const newAmphitheater: Amphitheater = {
-        ...amphitheaterData,
-        id: amphitheaterData.id || `amphi-${Date.now()}`, // Utiliser l'ID du backend ou générer un temporaire
-        createdAt: new Date().toISOString().split('T')[0]
-      } as Amphitheater;
-      setAmphitheaters(prev => [newAmphitheater, ...prev]);
+      const result = await createAmphitheater(formData);
+      if (result) {
+        setModalOpen(false);
+        setSelectedAmphitheater(undefined);
+      }
     }
   };
 
@@ -153,8 +158,8 @@ export const Amphitheaters = () => {
     }
   };
 
-  const getAmphitheaterImage = (amphitheater: Amphitheater) => {
-    return amphitheater.mainImage || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=600&fit=crop';
+  const getAmphitheaterImage = (amphitheater: Classroom) => {
+    return amphitheater.main_image || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=600&fit=crop';
   };
 
   return (
@@ -221,6 +226,17 @@ export const Amphitheaters = () => {
         </div>
       </div>
 
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-4 p-4 bg-gray-100 rounded text-sm">
+          <p><strong>Debug:</strong></p>
+          <p>Total amphitheaters: {amphitheaters.length}</p>
+          <p>Filtered amphitheaters: {filteredAmphitheaters.length}</p>
+          <p>Loading: {amphitheatersLoading ? 'Yes' : 'No'}</p>
+          <p>Error: {amphitheatersError || 'None'}</p>
+        </div>
+      )}
+
       {/* Amphitheaters Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredAmphitheaters.map((amphitheater) => (
@@ -238,7 +254,7 @@ export const Amphitheaters = () => {
                     {amphitheater.name}
                   </CardTitle>
                   <CardDescription className="mt-1">
-                    {getUniversityName(amphitheater.universityId)}
+                    {amphitheater.slug}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -279,38 +295,60 @@ export const Amphitheaters = () => {
               </p>
 
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">{amphitheater.location}</span>
-                </div>
+                {amphitheater.lat && amphitheater.lng && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      {amphitheater.lat}, {amphitheater.lng}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 text-sm">
                   <Users className="h-3 w-3 text-muted-foreground" />
-                  <span className="font-medium">{amphitheater.capacity} places</span>
+                  <span className="font-medium">{amphitheater.capacity || 0} places</span>
                 </div>
 
-                <div className="mt-4">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Équipements :</p>
-                  <div className="flex flex-wrap gap-1">
-                    {amphitheater.equipment.slice(0, 2).map((item, index) => (
-                      <Badge key={`${amphitheater.id}-equipment-${index}-${item}`} variant="outline" className="text-xs">
-                        {item}
-                      </Badge>
-                    ))}
-                    {amphitheater.equipment.length > 2 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{amphitheater.equipment.length - 2}
-                      </Badge>
-                    )}
+                {amphitheater.equipment && amphitheater.equipment.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Équipements :</p>
+                    <div className="flex flex-wrap gap-1">
+                      {amphitheater.equipment.slice(0, 2).map((item, index) => (
+                        <Badge key={`${amphitheater.id}-equipment-${index}-${item}`} variant="outline" className="text-xs">
+                          {item}
+                        </Badge>
+                      ))}
+                      {amphitheater.equipment.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{amphitheater.equipment.length - 2}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {filteredAmphitheaters.length === 0 && !universitiesLoading && (
+      {/* Loading state */}
+      {amphitheatersLoading && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-lg">Chargement des amphithéâtres...</p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {amphitheatersError && (
+        <div className="text-center py-12">
+          <p className="text-destructive text-lg">Erreur lors du chargement</p>
+          <p className="text-sm text-muted-foreground mt-2">{amphitheatersError}</p>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!amphitheatersLoading && !amphitheatersError && filteredAmphitheaters.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">Aucun amphithéâtre trouvé</p>
           <p className="text-sm text-muted-foreground mt-2">
@@ -319,12 +357,6 @@ export const Amphitheaters = () => {
               : "Essayez de modifier vos critères de recherche"
             }
           </p>
-        </div>
-      )}
-
-      {universitiesLoading && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">Chargement des universités...</p>
         </div>
       )}
 
@@ -342,8 +374,15 @@ export const Amphitheaters = () => {
         onOpenChange={setConfirmOpen}
         onConfirm={handleConfirmDelete}
         title="Supprimer l'amphithéâtre"
-        description={`Êtes-vous sûr de vouloir supprimer "${amphitheaterToDelete?.name}" ? Cette action est irréversible.`}
-        confirmText="Supprimer"
+        description={`Êtes-vous sûr de vouloir supprimer définitivement l'amphithéâtre "${amphitheaterToDelete?.name}" ? 
+
+Cette action supprimera :
+• Toutes les informations de l'amphithéâtre
+• Les équipements associés
+• L'historique des réservations
+
+Cette action est irréversible et ne peut pas être annulée.`}
+        confirmText="Supprimer définitivement"
         cancelText="Annuler"
         variant="destructive"
       />
