@@ -141,7 +141,7 @@ class ApiService {
   }
 
   // Créer un amphithéâtre
-  async createAmphitheater(data: FormData): Promise<any> {
+  async creeateClassroom(data: FormData): Promise<any> {
     try {
       const response = await this.request('/api/classrooms', {
         method: 'POST',

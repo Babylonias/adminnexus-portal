@@ -149,6 +149,7 @@ export const AmphitheaterModal = ({
   const onUniversityChange = (universityId: string) => {
     const university = universities.find(u => u.id === universityId);
     if (university) {
+      console.log('University selected:', university); // Debug
       form.setValue('universityId', university.id);
       form.setValue('university', university.name);
     }
@@ -158,6 +159,12 @@ export const AmphitheaterModal = ({
     try {
       console.log('Form data received:', data); // Debug
 
+      // Vérifier que l'université est sélectionnée
+      if (!data.universityId) {
+        toast.error('Veuillez sélectionner une université');
+        return;
+      }
+
       // Préparer les données pour l'API backend
       const formData = new FormData();
 
@@ -165,17 +172,15 @@ export const AmphitheaterModal = ({
       formData.append('name', data.name || '');
       formData.append('slug', data.slug || '');
 
+      // Ajouter l'université (obligatoire)
+      formData.append('university_id', data.universityId);
+
       // Ajouter les coordonnées (lng/lat comme attendu par le backend)
       if (data.lng !== undefined && data.lng !== null) {
         formData.append('lng', data.lng.toString());
       }
       if (data.lat !== undefined && data.lat !== null) {
         formData.append('lat', data.lat.toString());
-      }
-
-      // Ajouter l'université
-      if (data.universityId) {
-        formData.append('university_id', data.universityId);
       }
 
       // Ajouter les autres champs optionnels
@@ -224,7 +229,7 @@ export const AmphitheaterModal = ({
         result = await apiService.updateAmphitheater(amphitheater.id, formData);
       } else {
         console.log('Creating new amphitheater'); // Debug
-        result = await apiService.createAmphitheater(formData);
+        result = await apiService.creeateClassroom(formData);
       }
 
       // Pour l'instant, on continue à utiliser la fonction onSave locale
@@ -271,15 +276,20 @@ export const AmphitheaterModal = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nom de l'amphithéâtre</Label>
+              <Label htmlFor="name">Nom de l'amphithéâtre *</Label>
               <Input
                 id="name"
                 {...form.register('name', {
-                  required: !isReadOnly,
+                  required: !isReadOnly ? 'Le nom est obligatoire' : false,
                 })}
                 placeholder="ex: Amphi Sciences 200"
                 disabled={isReadOnly}
               />
+              {form.formState.errors.name && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.name.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -309,13 +319,13 @@ export const AmphitheaterModal = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="university">Université</Label>
+              <Label htmlFor="university">Université *</Label>
               <Select
                 value={form.watch('universityId')}
                 onValueChange={onUniversityChange}
                 disabled={isReadOnly || universitiesLoading}
               >
-                <SelectTrigger>
+                <SelectTrigger className={!form.watch('universityId') && !isReadOnly ? 'border-destructive' : ''}>
                   <SelectValue
                     placeholder={
                       universitiesLoading
@@ -334,6 +344,11 @@ export const AmphitheaterModal = ({
                   ))}
                 </SelectContent>
               </Select>
+              {!form.watch('universityId') && !isReadOnly && (
+                <p className="text-xs text-destructive">
+                  L'université est obligatoire
+                </p>
+              )}
               {universitiesError && (
                 <p className="text-sm text-destructive">
                   Erreur: {universitiesError}

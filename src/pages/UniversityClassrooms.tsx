@@ -195,7 +195,7 @@ export const UniversityClassrooms = () => {
       // if (amphitheaterData.id) {
       //   await apiService.updateAmphitheater(amphitheaterData.id, formData);
       // } else {
-      //   await apiService.createAmphitheater(formData);
+      //   await apiService.creeateClassroom(formData);
       // }
       
       toast.success(amphitheaterData.id ? 'Amphithéâtre modifié avec succès' : 'Amphithéâtre créé avec succès');
