@@ -155,7 +155,8 @@ export const Sidebar = ({ onToggle }: SidebarProps) => {
                 const isActive =
                   location.pathname === item.href ||
                   (item.href === "/classrooms" &&
-                    location.pathname === "/classrooms");
+                    (location.pathname === "/classrooms" ||
+                      location.pathname.includes("classrooms")))
                 return (
                   <li key={item.href}>
                     <Link

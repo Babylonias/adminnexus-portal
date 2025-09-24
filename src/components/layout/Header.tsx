@@ -14,15 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const Header = () => {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-sm px-6">
-      {/* Search */}
-      <div className="relative max-w-md flex-1 lg:max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Rechercher..."
-          className="pl-10 bg-background/50 border-border/50"
-        />
-      </div>
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-end border-b border-border/50 bg-background/80 backdrop-blur-sm px-6">
 
       {/* User actions */}
       <div className="flex items-center gap-4">

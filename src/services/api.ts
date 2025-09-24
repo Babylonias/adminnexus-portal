@@ -49,6 +49,8 @@ interface Classroom {
   updated_at?: string;
   main_image?: string;
   annexes?: string[];
+  universityId?: string;
+  university?: University;
 }
 
 class ApiService {
