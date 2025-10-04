@@ -1,23 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiService, type Classroom } from "@/services/api";
 import { toast } from "sonner";
+import { PaginationMeta } from "@/services/api";
 
 export const useClassrooms = () => {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
 
-  const fetchClassrooms = async () => {
+  const fetchClassrooms = useCallback(async () => {
     try {
       console.log("🏛️ Hook: Starting fetchClassrooms...");
       setLoading(true);
       setError(null);
 
       console.log("🏛️ Hook: Calling apiService.getAmphitheaters()...");
-      const data = await apiService.getAmphitheaters();
+      const { data, meta } = await apiService.getAmphitheaters();
 
       console.log("🏛️ Hook: Received classrooms data:", data);
       setClassrooms(data);
+      setPagination(meta);
       console.log("🏛️ Hook: Classrooms state updated");
     } catch (err) {
       const errorMessage =
@@ -30,7 +33,12 @@ export const useClassrooms = () => {
       setLoading(false);
       console.log("🏛️ Hook: fetchClassrooms completed");
     }
-  };
+  }, []);
+
+  // Charger les salles de cours au montage du composant
+  useEffect(() => {
+    fetchClassrooms();
+  }, [fetchClassrooms]);
 
   const createClassroom = async (
     formData: FormData,
@@ -142,10 +150,6 @@ export const useClassrooms = () => {
       return null;
     }
   };
-
-  useEffect(() => {
-    fetchClassrooms();
-  }, []);
 
   return {
     classrooms,

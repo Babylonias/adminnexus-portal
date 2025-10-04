@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 const navigationItems = [
   {
     name: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -117,36 +117,38 @@ export const Sidebar = ({ onToggle }: SidebarProps) => {
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex items-center gap-3 px-6 py-6 border-b border-border/50 relative">
-            <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
-              <GraduationCap className="h-6 w-6 text-white" />
-            </div>
-            {!isCollapsed && (
-              <div>
-                <h1 className="font-bold text-lg bg-gradient-primary bg-clip-text text-transparent">
-                  CampusWA
-                </h1>
-                <p className="text-xs text-muted-foreground">Admin Hub</p>
+            <div className="flex items-center gap-3 px-6 py-6 border-b border-border/50 relative">
+              <Link to="/" className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
+                <GraduationCap className="h-6 w-6 text-white" />
               </div>
-            )}
+              {!isCollapsed && (
+                <div>
+                  <h1 className="font-bold text-lg bg-gradient-primary bg-clip-text text-transparent">
+                    CampusWA
+                  </h1>
+                  <p className="text-xs text-muted-foreground">Admin Hub</p>
+                </div>
+              )}
+              </Link>
 
-            {/* Toggle button - only visible on desktop */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleToggle}
-              className={cn(
-                "hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-background border border-border/50 hover:bg-accent z-10",
-                isCollapsed && "right-1",
-              )}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="h-3 w-3" />
-              ) : (
-                <ChevronLeft className="h-3 w-3" />
-              )}
-            </Button>
-          </div>
+              {/* Toggle button - only visible on desktop */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleToggle}
+                className={cn(
+                  "hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-background border border-border/50 hover:bg-accent z-10",
+                  isCollapsed && "right-1",
+                )}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="h-3 w-3" />
+                ) : (
+                  <ChevronLeft className="h-3 w-3" />
+                )}
+              </Button>
+            </div>
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6">

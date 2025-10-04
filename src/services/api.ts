@@ -16,11 +16,19 @@ const generateTempUUID = (): string => {
   });
 };
 
+export interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
 interface ApiResponse<T> {
   data: T;
   message?: string;
-  success: boolean;
+  success?: boolean;
   status: number;
+  meta?: PaginationMeta;
 }
 
 interface University {
@@ -160,67 +168,36 @@ class ApiService {
   }
 
   // Récupérer tous les amphithéâtres
-  async getAmphitheaters(): Promise<Classroom[]> {
+  async getAmphitheaters(page: number = 1, perPage: number = 15): Promise<{ data: Classroom[]; meta: PaginationMeta }> {
     try {
-      const response = await this.request<
-        { classrooms: Classroom[] } | Classroom[]
-      >("/api/classrooms");
-      console.log("Amphitheaters response:", response); // Debug
-
-      // Traiter les données selon la structure de votre API
-      let amphitheaters = response.data?.classrooms || response.data || [];
-
-      // Si c'est un objet avec une propriété classrooms
-      if (
-        response.data &&
-        typeof response.data === "object" &&
-        !Array.isArray(response.data)
-      ) {
-        amphitheaters = response.data.classrooms || [];
+      const response = await this.request<{ data: Classroom[]; meta: PaginationMeta }>(
+        `/api/classrooms?page=${page}&per_page=${perPage}`
+      );
+  
+      console.log("🔍 API Response:", response); // Ajout d'un log pour déboguer
+      
+      if (!response.success) {
+        throw new Error(response.message || "Failed to fetch amphitheaters");
       }
-
-      // Normaliser les données
-      return amphitheaters.map((amphitheater: Classroom, index: number) => {
-        console.log(`Amphitheater ${index}:`, amphitheater); // Debug
-
-        if (!amphitheater.id) {
-          console.error(
-            "Amphitheater without ID found at index",
-            index,
-            ":",
-            amphitheater,
-          );
-          throw new Error(
-            `Amphitheater at index ${index} is missing required ID field`,
-          );
-        }
-
-        if (!isValidUUID(amphitheater.id)) {
-          console.warn(
-            "Invalid UUID format for amphitheater ID:",
-            amphitheater.id,
-          );
-        }
-
-        return {
-          id: amphitheater.id,
-          name: amphitheater.name || "",
-          slug: amphitheater.slug || "",
-          lng: amphitheater.lng,
-          lat: amphitheater.lat,
-          capacity: amphitheater.capacity ? parseInt(amphitheater.capacity) : 0,
-          equipment: amphitheater.equipment || [],
-          status: amphitheater.status || "active",
-          description: amphitheater.description || "",
-          created_at: amphitheater.created_at,
-          updated_at: amphitheater.updated_at,
-          main_image: amphitheater.main_image,
-          annexes: amphitheater.annexes || [],
-        };
-      });
+      
+      // Vérifier que response.data est bien défini et est un tableau
+      const data = response.data && Array.isArray(response.data) ? response.data : [];
+      
+      return {
+        data,
+        meta: response.meta || { current_page: page, last_page: 1, per_page: perPage, total: 0 }
+      };
     } catch (error) {
       console.error("Failed to fetch amphitheaters:", error);
-      return [];
+      return {
+        data: [],
+        meta: {
+          current_page: page,
+          last_page: 1,
+          per_page: perPage,
+          total: 0
+        }
+      };
     }
   }
 

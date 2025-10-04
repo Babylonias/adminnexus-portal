@@ -229,19 +229,6 @@ export const Classrooms = () => {
         </div>
       </div>
 
-      {/* Debug info */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mb-4 p-4 bg-gray-100 rounded text-sm">
-          <p>
-            <strong>Debug:</strong>
-          </p>
-          <p>Total classrooms: {classrooms.length}</p>
-          <p>Filtered classrooms: {filteredClassrooms.length}</p>
-          <p>Loading: {classroomsLoading ? "Yes" : "No"}</p>
-          <p>Error: {classroomsError || "None"}</p>
-        </div>
-      )}
-
       {/* Classrooms List */}
       <ClassroomList
         classrooms={filteredClassrooms}

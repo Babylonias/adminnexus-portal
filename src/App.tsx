@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Dashboard } from "@/pages/Dashboard";
 import { Universities } from "@/pages/Universities";
@@ -10,6 +10,7 @@ import { Classrooms } from "@/pages/Classrooms";
 import { UniversityClassrooms } from "@/pages/UniversityClassrooms";
 import { Notifications } from "@/pages/Notifications";
 import NotFound from "./pages/NotFound";
+import { Home } from "./pages/Home";
 
 const queryClient = new QueryClient();
 
@@ -20,8 +21,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+        <Route path="/" element={<Home />} />
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <DashboardLayout>
                 <Dashboard />
