@@ -1,3 +1,7 @@
+import { University } from "@/interfaces/university.interface";
+import { Classroom } from "@/interfaces/classroom.interface";
+
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7011";
 
 // Fonction utilitaire pour valider les UUID
@@ -29,36 +33,6 @@ interface ApiResponse<T> {
   success?: boolean;
   status: number;
   meta?: PaginationMeta;
-}
-
-interface University {
-  id: string; // UUID
-  name: string;
-  slug: string;
-  description?: string;
-  address?: string;
-  lng?: string | number | null;
-  lat?: string | number | null;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Classroom {
-  id: string; // UUID
-  name: string;
-  slug: string;
-  lng?: string | number | null;
-  lat?: string | number | null;
-  capacity?: number;
-  equipment?: string[];
-  status?: "active" | "maintenance" | "draft";
-  description?: string;
-  created_at?: string;
-  updated_at?: string;
-  main_image?: string;
-  annexes?: string[];
-  universityId?: string;
-  university?: University;
 }
 
 class ApiService {
@@ -301,7 +275,7 @@ class ApiService {
           slug: classroom.slug || "",
           lng: classroom.lng,
           lat: classroom.lat,
-          capacity: classroom.capacity ? parseInt(classroom.capacity) : 0,
+          capacity: 0,
           equipment: classroom.equipment || [],
           status: classroom.status || "active",
           description: classroom.description || "",

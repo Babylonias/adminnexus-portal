@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { apiService, type University } from '@/services/api';
+import { apiService } from '@/services/api';
+import { University } from '@/interfaces/university.interface';
+
 
 export const useUniversities = () => {
   const [universities, setUniversities] = useState<University[]>([]);

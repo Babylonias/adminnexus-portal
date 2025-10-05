@@ -11,8 +11,25 @@ import { UniversityClassrooms } from "@/pages/UniversityClassrooms";
 import { Notifications } from "@/pages/Notifications";
 import NotFound from "./pages/NotFound";
 import { Home } from "./pages/Home";
+// import { useAuth } from "./hooks/use-auth";
+// import { Outlet } from "react-router-dom";
 
 const queryClient = new QueryClient();
+
+// Composant pour les routes protégées
+// const ProtectedRoute = () => {
+//   const { isAuthenticated, isLoading } = useAuth();
+
+//   if (isLoading) {
+//     return <div>Chargement...</div>; // Ou un composant de chargement
+//   }
+
+//   if (!isAuthenticated) {
+//     return <Navigate to="/" replace />;
+//   }
+
+//   return <Outlet />;
+// };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

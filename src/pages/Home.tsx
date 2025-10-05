@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// import { useAuth } from "@/hooks/use-auth";
 
 const features = [
     {
@@ -26,6 +27,8 @@ const features = [
 ];
 
 export function Home() {
+    // const { isAuthenticated } = useAuth();
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Navbar */}
@@ -48,11 +51,11 @@ export function Home() {
                                 <Link to="/universities" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-primary transition">Universités</Link>
                             </div>
                         </div>
-                        <div className="hidden md:block">
-                            <Link to="/dashboard">
+                            <div className="hidden md:block">
+                                <Link to="/dashboard">
                                 <Button>Tableau de bord</Button>
-                            </Link>
-                        </div>
+                                </Link>
+                            </div>
                     </div>
                 </div>
             </nav>
