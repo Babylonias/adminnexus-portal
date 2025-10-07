@@ -1,4 +1,4 @@
-export interface IUniversity {
+export interface University {
     id: string; // UUID
     name: string;
     slug: string;

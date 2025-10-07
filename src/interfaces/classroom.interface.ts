@@ -1,6 +1,6 @@
-import { IUniversity } from "./university.interface";
+import { University } from "./university.interface";
 
-export interface IClassroom {
+export interface Classroom {
   id: string; // UUID
   name: string;
   slug: string;
@@ -15,5 +15,5 @@ export interface IClassroom {
   main_image?: string;
   annexes?: string[];
   universityId?: string;
-  university?: IUniversity;
+  university?: University;
 }

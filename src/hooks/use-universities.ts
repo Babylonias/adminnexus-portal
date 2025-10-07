@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
-import { University } from '@/models/university.model';
+import { University } from '@/interfaces/university.interface';
 
 
 export const useUniversities = () => {

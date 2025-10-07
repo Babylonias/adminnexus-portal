@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { apiService } from "@/services/api";
 import { toast } from "sonner";
 import { PaginationMeta } from "@/services/api";
-import { Classroom } from "@/models/classroom.model";
+import { Classroom } from "@/interfaces/classroom.interface";
 
 export const useClassrooms = () => {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);

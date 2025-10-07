@@ -1,5 +1,5 @@
-import { University } from "@/models/university.model";
-import { Classroom } from "@/models/classroom.model";
+import { University } from "@/interfaces/university.interface";
+import { Classroom } from "@/interfaces/classroom.interface";
 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7011";
