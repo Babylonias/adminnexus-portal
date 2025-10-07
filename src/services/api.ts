@@ -1,5 +1,5 @@
-import { University } from "@/interfaces/university.interface";
-import { Classroom } from "@/interfaces/classroom.interface";
+import { University } from "@/models/university.model";
+import { Classroom } from "@/models/classroom.model";
 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7011";
@@ -368,4 +368,3 @@ class ApiService {
 
 export const apiService = new ApiService();
 export { isValidUUID, generateTempUUID };
-export type { University, Classroom, ApiResponse };
